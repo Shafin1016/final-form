@@ -177,7 +177,7 @@ button{font-family:inherit;cursor:pointer}
       <div class="copy">
         <div>
           <h2>FINAL FORM</h2>
-          <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Run out of time and the rival hits back.</p>
+          <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Rarity comes from how many players gave the same answer: under 0.1% is Mythic, under 1% Legendary, under 4% Epic, under 10% Rare, under 25% Uncommon. Run out of time and the rival hits back.</p>
         </div>
         <div class="cta">
           <button class="btn main" id="playDaily" disabled>Play daily #—</button>
@@ -237,7 +237,7 @@ button{font-family:inherit;cursor:pointer}
         </div>
       </div>
     </div>
-    <div class="card" style="margin-top:12px"><h3>Where you stand · <span id="histN">0</span> runs</h3><canvas class="hist" id="hist"></canvas></div>
+    <div class="card" style="margin-top:12px"><h3>Where you stand · <span id="histN">0</span> runs</h3><canvas class="hist" id="hist"></canvas><div id="seedNote" style="margin-top:8px;font-size:11.5px;color:var(--muted)"></div></div>
     <div class="card" style="margin-top:12px"><h3>Your rounds</h3><table class="recap" id="recap"></table></div>
     <div class="res-actions"><button class="btn main" id="shareBtn">Share result</button><button class="btn ghost" id="againBtn">Practice run</button><button class="btn ghost" id="homeBtn">Home</button><button class="btn ghost" id="reportBtn">Copy report for the developer</button></div>
     <div class="foot" id="foot"></div>
@@ -259,6 +259,7 @@ button{font-family:inherit;cursor:pointer}
 <script src="prompts.js"></script>
 <script src="prompts2.js"></script>
 <script src="prompts3.js"></script>
+<script src="seed.js"></script>
 <script>
 (() => {
 /* ================= CONFIG ================= */
@@ -351,7 +352,26 @@ const Store = { db: null, uid: null, ready: false,
   async stats() { if (this.db) { try { const snap = await Promise.race([this.db.collection('stats').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]); const st = mergeStats(snap.docs.map(d => d.data())); if (st.n) return { stats: st, shared: true }; } catch (e) { console.warn('stats load', e); } }
     return { stats: this.local().reduce((s, r) => addRun(s, r), emptyStats()), shared: false }; },
 };
-Store.init();
+Store.init().then(refreshLive);
+
+/* ================= RARITY FROM REAL ANSWERS ================= */
+// One shared pool: real runs + a starter pool of 1,000 simulated players (seed.js).
+// The starter pool's weight fades as real people play: at 1,000 real plays of a prompt it is gone.
+const SEED = window.FF_SEED || null, SEED_FADE = 1000, MIN_SAMPLE = 50;
+// tier cutoffs = share of players who gave that answer for that prompt
+const CUTS = [['S', 0.001], ['A', 0.01], ['B', 0.04], ['C', 0.10], ['D', 0.25], ['E', 1.01]];
+function blend(live) { live = live || emptyStats(); const out = emptyStats(), gf = SEED ? Math.max(0, 1 - live.n / SEED_FADE) : 0;
+  out.liveN = live.n; out.seedW = gf; out.n = live.n + (SEED ? SEED.n * gf : 0);
+  for (let i = 0; i < NBINS; i++) out.bins[i] = (live.bins[i] || 0) + (SEED ? (SEED.bins[i] || 0) * gf : 0);
+  const ids = new Set([...Object.keys(live.pn || {}), ...Object.keys(SEED ? SEED.pn : {})]);
+  for (const id of ids) { const lp = (live.pn || {})[id] || 0, f = SEED ? Math.max(0, 1 - lp / SEED_FADE) : 0, sp = SEED ? (SEED.pn[id] || 0) : 0;
+    out.pn[id] = lp + sp * f; const m = out.ans[id] = {}, la = (live.ans || {})[id] || {}, sa = SEED ? (SEED.ans[id] || {}) : {};
+    for (const k of new Set([...Object.keys(la), ...Object.keys(sa)])) m[k] = (la[k] || 0) + (sa[k] || 0) * f; }
+  return out; }
+let EFF = blend(null);
+async function refreshLive() { try { const r = await Store.stats(); EFF = blend(r && r.stats); } catch (e) { } }
+function shareOf(pid, key) { const pn = EFF.pn[pid] || 0; return pn ? ((EFF.ans[pid] || {})[key] || 0) / pn : null; }
+function dynTier(p, ans) { const pn = EFF.pn[p.id] || 0; if (pn < MIN_SAMPLE) return ans.tier; const sh = shareOf(p.id, ans.key); for (const [t, c] of CUTS) if (sh < c) return t; return 'E'; }
 
 /* ================= AUDIO (one unlocked element plays every cutscene) ================= */
 const AUDIO = new Audio(); AUDIO.preload = 'auto'; AUDIO.setAttribute('playsinline', '');
@@ -411,6 +431,7 @@ $('homeBtn').onclick = () => { $('playDaily').textContent = `Replay daily #${DAY
 /* ================= GAME ================= */
 let G = null, timerRAF = 0;
 function startGame(mode) {
+  refreshLive();
   const r = mode === 'daily' ? rng(DAY * 7919 + 13) : rng((Math.random() * 2 ** 31) | 0);
   G = { mode, prompts: Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
   setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
@@ -443,7 +464,7 @@ $('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked) return; u
   (G.missed = G.missed || []).push(raw); G.rmiss.push(raw); $('ans').select(); if (G.strikes >= CFG.strikes) resolve(null, 'strikes'); };
 async function resolve(ans, why, raw) {
   if (G.locked) return; G.locked = true; cancelAnimationFrame(timerRAF); $('ans').blur();
-  const p = G.prompts[G.round], tier = ans ? ans.tier : null, T = tier ? TIERS[tier] : null;
+  const p = G.prompts[G.round], tier = ans ? dynTier(p, ans) : null, T = tier ? TIERS[tier] : null;
   const cut = tier ? T.cuts[Math.floor(Math.random() * T.cuts.length)] : 'x', abil = tier ? T.abil[cut] : 'Enemy Counter';
   const pts = tier ? T.pts : 0, dealt = tier ? (tier === 'S' ? G.rv : T.pts) : 0, taken = tier ? T.taken : CFG.missDmg;
   // reveal panel
@@ -492,7 +513,7 @@ async function endGame() {
   if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
   window.__lastRun = run;
   show('results'); renderResults(run, null);
-  const where = await Store.save(run); const all = await Store.stats(); renderResults(run, all, where);
+  const where = await Store.save(run); const all = await Store.stats(); if (all) { all.stats = blend(all.stats); EFF = all.stats; } renderResults(run, all, where);
 }
 function renderResults(run, all, where) {
   const rank = rankOf(run.score), ri = RANKS.indexOf(rank), next = RANKS[ri + 1];
@@ -501,17 +522,18 @@ function renderResults(run, all, where) {
   md.querySelectorAll('.spark').forEach(s => s.remove()); if (ri >= 2) for (let i = 0; i < (ri === 3 ? 7 : 4); i++) { const s = document.createElement('i'); s.className = 'spark'; const a = i / (ri === 3 ? 7 : 4) * 6.283 + .4, rr = 86 + (i % 2) * 14; s.style.left = (95 + Math.cos(a) * rr - 5) + 'px'; s.style.top = (95 + Math.sin(a) * rr - 5) + 'px'; s.style.animationDelay = (i * .37) + 's'; md.appendChild(s); }
   $('resHead').textContent = (run.mode === 'daily' ? `Daily #${run.day + 1}` : 'Practice run') + (run.alive ? ' · Complete' : ' · Defeated');
   if (!all) countUp($('bigScore'), run.score);
-  const S = all ? all.stats : emptyStats(), n = S.n, mb = Math.min(NBINS - 1, Math.floor(run.score / BIN)), below = S.bins.slice(0, mb).reduce((a, b) => a + b, 0), same = S.bins[mb] || 0;
+  const S = all ? all.stats : emptyStats(), n = Math.round(S.n), mb = Math.min(NBINS - 1, Math.floor(run.score / BIN)), below = S.bins.slice(0, mb).reduce((a, b) => a + b, 0), same = S.bins[mb] || 0;
   const pct = n > 1 ? Math.round(clamp((below + Math.max(0, same - 1) / 2) / (n - 1)) * 100) : null;
   const hits = run.ans.filter(a => a.t).length, best = run.ans.reduce((b, a) => a.t && (!b || ORDER.indexOf(a.t) < ORDER.indexOf(b)) ? a.t : b, null);
   $('resSub').innerHTML = `${hits}/7 answers landed${best ? ` · best form <b style="color:${TIERS[best].col}">${TIERS[best].name}</b>` : ''}${run.kos ? ` · <b>${run.kos}</b> rival${run.kos > 1 ? 's' : ''} K.O.'d` : ''}` + (all ? (pct != null ? `<br>You beat <b>${pct}%</b> of ${n - 1} other run${n - 1 === 1 ? '' : 's'}.` : `<br>You're the first run on the board.`) : '<br><span style="color:var(--muted)">Loading the leaderboard…</span>');
   $('nextFill').style.background = (next || rank).t; requestAnimationFrame(() => { $('nextFill').style.width = (next ? clamp((run.score - rank.min) / (next.min - rank.min)) * 100 : 100) + '%'; });
   $('nextTxt').textContent = next ? `${next.min - run.score} points to ${next.name}` : 'Top rank reached';
-  $('histN').textContent = n; window.__histBins = S.bins; drawHist(S.bins, run.score);
+  $('histN').textContent = n.toLocaleString(); window.__histBins = S.bins; drawHist(S.bins, run.score);
+  $('seedNote').textContent = S.seedW > 0.01 ? `Includes a starter pool of simulated players while the game is new (${Math.round(S.seedW * 100)}% weight now) — it fades out as more people play. ${S.liveN || 0} real run${S.liveN === 1 ? '' : 's'} so far.` : '';
   const P = id => PROMPTS.find(p => p.id === id);
   $('recap').innerHTML = run.ans.map((a, i) => { const p = P(a.p), T = a.t ? TIERS[a.t] : null, tot = S.pn[a.p] || 0, cnt = a.a ? ((S.ans[a.p] || {})[a.a] || 0) : 0;
-    const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.tier === 'S').concat(p.answers.filter(x => x.tier === 'A')).filter(x => x.key !== a.a).slice(0, 3).map(x => x.name);
-    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName || '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${Math.round(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
+    const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.key !== a.a && ['S', 'A'].includes(dynTier(p, x))).sort((x, y) => (shareOf(p.id, x.key) || 0) - (shareOf(p.id, y.key) || 0) || 'SABCDE'.indexOf(x.tier) - 'SABCDE'.indexOf(y.tier)).slice(0, 3).map(x => x.name);
+    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName || '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
   $('recap').querySelectorAll('.claim').forEach(b => b.onclick = () => { if (b.classList.contains('on')) return; const raw = b.dataset.raw, pid = b.dataset.p; addClaim(pid, raw); run.claims = run.claims || []; if (!run.claims.some(c => c.p === pid && c.raw === raw)) run.claims.push({ p: pid, raw }); b.classList.add('on'); b.textContent = 'Flagged ✓'; Store.patch(run); toast('Thanks — flagged for review'); });
   $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
   window.__resultsReady = !!all;
