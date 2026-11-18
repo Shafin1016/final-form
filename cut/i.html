@@ -574,8 +574,8 @@ const EVENTS = [
       spawn(26, () => ({ x: RX + rand(-60, 60), y: G - rand(2, 10), vx: rand(-300, 300), vy: rand(-420, -140), g: 900, life: rand(.7, 1.3), s: rand(2.5, 5.5), c: pick(['#26282c', '#3e4146', '#55595f'])})); }],
 ];
 const SND = [
-  [0, () => { FX.whoosh(0, .7, 2600, 240, .8, { p0: .8, p1: 0 }); }],
-  [T.land - .03, () => { FX.stomp(0, 1.3); FX.sub(0, 58, 26, 1.4, .9, 3); FX.debris(.02, .7, 1.0); FX.rumble(.02, .9, .45); }],
+  [0, () => { FX.whoosh(0, .7, 1300, 200, .6, { p0: .8, p1: 0 }); }],
+  [T.land - .03, () => { FX.stomp(0, .75); FX.sub(0, 58, 30, 1.1, .45, 3); FX.debris(.02, .6, .6); FX.rumble(.02, .8, .25); }],
   [T.land + .35, () => { FX.growl(0, .8, .45); }],
 ];
 let sfired = [];
