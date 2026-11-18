@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Final Form · Daily anime & video game trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Shippori+Mincho+B1:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080b;--panel:#0e1016;--panel2:#13161e;--ink:#ecebe6;--muted:#8a8984;--dim:#5d5c58;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+  --S:#dfe8ff;--A:#ffc94d;--B:#b98cff;--C:#6aa8ff;--D:#7fd18b;--E:#b9bec7;--X:#ff5a4a;--hp:#7fd18b;--rv:#ff5a4a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;background:radial-gradient(1200px 600px at 50% -15%,#151927,#07080b 60%) fixed}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1000px;margin:0 auto;padding:18px 16px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand h1{font:800 20px "Shippori Mincho B1",Georgia,serif;letter-spacing:.32em;margin:0}
+.brand span{font:600 10px Inter;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
+.iconbtn{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:999px;padding:7px 12px;font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase}
+.iconbtn.off{color:var(--dim)}
+.screen{display:none}.screen.on{display:block;animation:fadein .35s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- home ---------- */
+.hero{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 40px 90px -40px #000,0 0 0 1px var(--line);aspect-ratio:16/9;background:#000}
+.hero .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,11,0) 35%,rgba(7,8,11,.88) 100%);pointer-events:none}
+.hero .copy{position:absolute;left:0;right:0;bottom:0;padding:26px 30px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hero h2{font:800 clamp(30px,5.4vw,54px) "Shippori Mincho B1",Georgia,serif;letter-spacing:.18em;margin:0;line-height:1;text-shadow:0 4px 30px #000}
+.hero p{margin:10px 0 0;color:#cfcdc6;font-size:14px;max-width:440px;line-height:1.55}
+.cta{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:220px}
+.btn{border:0;border-radius:999px;padding:15px 26px;font:700 12px Inter;letter-spacing:.2em;text-transform:uppercase;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.main{background:linear-gradient(180deg,#fbfaf6,#d9d6cd);color:#0a0a0c;box-shadow:0 10px 30px -10px rgba(255,255,255,.35)}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--ink);border:1px solid var(--line2)}
+.btn[disabled]{opacity:.45;cursor:default}
+.loadline{font:600 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center}
+.loadbar{height:2px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:6px}.loadbar i{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:760px){.grid3{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{margin:0 0 10px;font:700 10px Inter;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.card p{margin:0;color:#c9c7c0;font-size:13px;line-height:1.6}
+.ladder{display:flex;flex-direction:column;gap:6px}
+.lrow{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:10px;font-size:12px}
+.lrow b{font:800 15px "Shippori Mincho B1",serif;text-align:center}
+.lrow .nm{color:#d8d6cf}.lrow .nm small{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}
+.lrow .pt{font:700 11px Inter;letter-spacing:.06em}
+.ranks{display:flex;gap:8px;flex-wrap:wrap}
+.rk{flex:1;min-width:110px;border-radius:10px;padding:10px 12px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.rk b{display:block;font:800 12px Inter;letter-spacing:.18em;text-transform:uppercase}
+.rk span{font-size:11px;color:var(--muted)}
+
+/* ---------- play ---------- */
+.stagewrap{position:relative}
+.stage{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 40px 90px -40px #000,0 0 0 1px var(--line)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;visibility:hidden;pointer-events:none}
+.stage iframe.vis{visibility:visible}
+#heroStage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.hud{position:absolute;left:0;right:0;top:0;padding:14px 16px;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start;pointer-events:none;transition:opacity .35s;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))}
+.hud.hide{opacity:0}
+.bar{display:flex;flex-direction:column;gap:5px}
+.bar.r{align-items:flex-end}
+.bar .who{font:700 10px Inter;letter-spacing:.22em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+.bar .who em{font-style:normal;color:var(--muted);font-weight:600}
+.hpo{position:relative;width:min(260px,34vw);height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hpo i{position:absolute;inset:0;transform-origin:left;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.hpo i.lag{background:rgba(255,255,255,.55);transition-delay:.45s}
+.bar.r .hpo i{transform-origin:right}
+.hpo i.fill{background:linear-gradient(90deg,#4caf6a,#9be3a4)}
+.bar.r .hpo i.fill{background:linear-gradient(270deg,#c4372b,#ff8a7a)}
+.hpn{font:600 10px Inter;color:#d9d7d0;letter-spacing:.08em}
+.score{justify-self:center;text-align:center}
+.score b{display:block;font:800 26px Inter;letter-spacing:.02em;line-height:1;text-shadow:0 2px 20px rgba(0,0,0,.6)}
+.score span{font:700 9px Inter;letter-spacing:.24em;color:var(--muted)}
+.float{position:absolute;left:50%;top:44px;transform:translateX(-50%);font:800 30px Inter;pointer-events:none;animation:floatup 1.5s ease forwards;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+@keyframes floatup{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.08)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-26px) scale(1)}}
+.banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:14px 26px;border-radius:12px;background:rgba(6,7,10,.78);border:1px solid var(--line2);text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.banner.on{opacity:1}
+.banner b{display:block;font:800 22px "Shippori Mincho B1",serif;letter-spacing:.22em}
+.banner span{font:600 10px Inter;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.skip{position:absolute;right:14px;bottom:14px;background:rgba(0,0,0,.45);color:#e9e7e1;border:1px solid var(--line2);border-radius:999px;padding:7px 14px;font:700 10px Inter;letter-spacing:.18em;text-transform:uppercase;display:none}
+.skip.on{display:block}
+
+.panel{margin-top:14px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:20px 22px;position:relative;overflow:hidden}
+.meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font:700 10px Inter;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.pips{display:flex;gap:4px}.pips i{width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,.1)}.pips i.on{background:#e9e7e1}
+.chip{border:1px solid var(--line2);border-radius:999px;padding:4px 10px;color:#d6d4cd}
+.q{font:700 clamp(22px,3.4vw,32px) "Shippori Mincho B1",Georgia,serif;margin:12px 0 16px;line-height:1.25;letter-spacing:.01em}
+.ansrow{display:flex;gap:10px}
+.ansrow input{flex:1;min-width:0;background:#08090c;border:1px solid var(--line2);border-radius:12px;padding:15px 16px;color:var(--ink);font:500 17px Inter;outline:none;transition:border-color .2s,box-shadow .2s}
+.ansrow input:focus{border-color:rgba(255,255,255,.4);box-shadow:0 0 0 4px rgba(255,255,255,.05)}
+.ansrow .btn{padding:0 24px}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.under{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;min-height:20px}
+.fb{font-size:12px;color:var(--muted)}.fb.bad{color:#ff8a7a}
+.claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
+.misses{margin-top:6px;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.misses s{color:#ff8a7a;text-decoration:none}
+.rep{width:100%;height:220px;background:#0b0c0f;color:#d8d6cf;border:1px solid var(--line2);border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+.strikes{display:flex;gap:6px;align-items:center;font:700 9px Inter;letter-spacing:.2em;color:var(--muted)}
+.strikes i{width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3)}.strikes i.x{background:var(--X);border-color:var(--X)}
+.timer{position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.05)}
+.timer i{display:block;height:100%;width:100%;background:#e9e7e1;transform-origin:left}
+.timer.low i{background:var(--X)}
+.tleft{font:700 11px Inter;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.tleft.low{color:var(--X)}
+.track{display:flex;gap:6px;margin-top:16px}
+.track span{flex:1;height:30px;border-radius:8px;border:1px dashed rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:800 13px "Shippori Mincho B1",serif;color:var(--dim)}
+.track span.cur{border-style:solid;border-color:rgba(255,255,255,.35);color:#e9e7e1}
+.track span.done{border-style:solid;color:#0a0a0c}
+.reveal{display:none;align-items:center;gap:18px}
+.reveal.on{display:flex;animation:fadein .3s}
+.tierbig{width:66px;height:66px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 36px "Shippori Mincho B1",serif;color:#0a0a0c;flex:none}
+.reveal .t1{font:600 11px Inter;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.reveal .t2{font:700 24px "Shippori Mincho B1",serif;margin:3px 0}
+.reveal .t3{font-size:13px;color:#cfcdc6}
+.reveal .grow{flex:1}
+.mini{font:600 11px Inter;color:var(--muted)}
+
+/* ---------- results ---------- */
+.res-top{display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center}
+@media(max-width:760px){.res-top{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.medal{position:relative;width:190px;height:190px;filter:drop-shadow(0 26px 40px rgba(0,0,0,.6))}
+.medal .disc{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:var(--m-c);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35),inset 0 -14px 30px rgba(0,0,0,.35),inset 0 10px 24px rgba(255,255,255,.35)}
+.medal .ring{position:absolute;inset:16px;border-radius:50%;background:var(--m-i);box-shadow:inset 0 0 0 2px rgba(255,255,255,.4),inset 0 8px 18px rgba(0,0,0,.3),0 0 0 2px rgba(0,0,0,.18)}
+.medal .glyph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.medal .glyph svg{width:78px;height:78px;filter:drop-shadow(0 2px 0 rgba(255,255,255,.35)) drop-shadow(0 -1px 0 rgba(0,0,0,.35))}
+.medal .shine{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
+.medal .shine:after{content:"";position:absolute;top:-30%;left:-80%;width:50%;height:160%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.75),rgba(255,255,255,0));transform:rotate(25deg);animation:sweep 3.2s ease-in-out infinite}
+@keyframes sweep{0%,55%{left:-80%}100%{left:140%}}
+.medal .spark{position:absolute;width:10px;height:10px;background:radial-gradient(circle,#fff 0 18%,rgba(255,255,255,0) 60%);animation:tw 2.4s ease-in-out infinite}
+.medal .spark:before,.medal .spark:after{content:"";position:absolute;left:50%;top:50%;width:18px;height:1.5px;background:linear-gradient(90deg,rgba(255,255,255,0),#fff,rgba(255,255,255,0));transform:translate(-50%,-50%)}
+.medal .spark:after{transform:translate(-50%,-50%) rotate(90deg)}
+@keyframes tw{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.15)}}
+.medal.platinum .disc{animation:irid 6s linear infinite}
+@keyframes irid{0%{filter:hue-rotate(0deg) saturate(1.1)}50%{filter:hue-rotate(28deg) saturate(1.3)}100%{filter:hue-rotate(0deg) saturate(1.1)}}
+.rname{font:800 13px Inter;letter-spacing:.42em;text-transform:uppercase;background:var(--m-t);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:14px;text-align:center}
+.bigscore{font:800 clamp(56px,9vw,92px) Inter;line-height:.95;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,#bdbab2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.res-head{font:700 10px Inter;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+.res-sub{font-size:14px;color:#d2d0c9;margin-top:10px;line-height:1.6}
+.res-sub b{color:#fff}
+.nextrank{margin-top:12px;height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;max-width:360px}
+.nextrank i{display:block;height:100%;width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.hist{width:100%;height:190px;display:block}
+.recap{width:100%;border-collapse:collapse;font-size:13px}
+.recap td{padding:11px 8px;border-top:1px solid var(--line);vertical-align:middle}
+.recap td.n{font:700 11px Inter;color:var(--muted);width:24px}
+.recap .qq{color:#d8d6cf}.recap .qq small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.recap .aa{font-weight:600}
+.tc{display:inline-flex;width:26px;height:26px;border-radius:7px;align-items:center;justify-content:center;font:800 14px "Shippori Mincho B1",serif;color:#0a0a0c}
+.recap .pp{text-align:right;font:800 13px Inter;white-space:nowrap}
+.recap .pct{color:var(--muted);font-size:11px;font-weight:500;display:block}
+.rare{font-size:11px;color:var(--muted);margin-top:4px}.rare em{font-style:normal;color:#e6e4dd}
+.res-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#efede7;color:#0a0a0c;border-radius:999px;padding:10px 18px;font:700 12px Inter;opacity:0;transition:.3s;pointer-events:none;z-index:9}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.foot{margin-top:24px;color:var(--dim);font-size:11px;text-align:center;line-height:1.7}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:8}
+.modal.on{display:flex}
+.modal .card{max-width:520px;width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><h1>FINAL FORM</h1><span id="dayLabel">Daily</span></div>
+    <div style="display:flex;gap:8px"><button class="iconbtn" id="howBtn">How to play</button><button class="iconbtn" id="myRepBtn">My report</button><button class="iconbtn" id="sndBtn">Sound on</button></div>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <section class="screen on" id="home">
+    <div class="hero">
+      <div id="heroStage" style="position:absolute;inset:0"></div>
+      <div class="shade"></div>
+      <div class="copy">
+        <div>
+          <h2>FINAL FORM</h2>
+          <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Run out of time and the rival hits back.</p>
+        </div>
+        <div class="cta">
+          <button class="btn main" id="playDaily" disabled>Play daily #—</button>
+          <button class="btn ghost" id="playPractice" disabled>Practice run</button>
+          <div><div class="loadline" id="loadLine">Preparing cutscenes…</div><div class="loadbar"><i id="loadBar"></i></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>How it works</h3><p>Each round gives you one prompt and <b>30 seconds</b>. Type any valid answer. Three answers we don't recognise, or the clock running out, and the rival counterattacks for <b>20 HP</b>. Prompts get harder every round.</p></div>
+      <div class="card"><h3>Answer rarity → attack</h3><div class="ladder" id="ladder"></div></div>
+      <div class="card"><h3>Your rank</h3><p style="margin-bottom:12px">Points = damage you deal. Your total decides your rank and where you land among everyone who's played.</p><div class="ranks" id="rankList"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ PLAY ============ -->
+  <section class="screen" id="play">
+    <div class="stagewrap">
+      <div class="stage" id="stage">
+        <div class="hud" id="hud">
+          <div class="bar"><div class="who">You <em id="hpTxt">150 / 150</em></div><div class="hpo"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div></div>
+          <div class="score"><b id="scoreTxt">0</b><span>POINTS</span></div>
+          <div class="bar r"><div class="who"><em id="rvTxt">200 / 200</em><span id="rvName">Oni Brute</span></div><div class="hpo"><i class="lag" id="rvLag"></i><i class="fill" id="rvFill"></i></div></div>
+        </div>
+        <div class="banner" id="banner"><b id="bannerB">K.O.</b><span id="bannerS">A new rival steps in</span></div>
+        <button class="skip" id="skipBtn">Skip ▸</button>
+      </div>
+    </div>
+    <div class="panel" id="panel">
+      <div class="timer" id="timer"><i id="timerFill"></i></div>
+      <div id="askView">
+        <div class="meta"><span id="roundTxt">Round 1 / 7</span><span class="pips" id="pips"></span><span class="chip" id="catTxt">Anime</span></div>
+        <div class="q" id="qTxt">—</div>
+        <form class="ansrow" id="ansForm" autocomplete="off"><input id="ans" placeholder="Type your answer…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"><button class="btn main" type="submit">Attack</button></form>
+        <div class="under"><span class="fb" id="fb">Rarer answers hit harder.</span><span style="display:flex;gap:16px;align-items:center"><span class="strikes" id="strikes">MISSES <i></i><i></i><i></i></span><span class="tleft" id="tleft">30</span></span></div>
+      </div>
+      <div class="reveal" id="reveal">
+        <div class="tierbig" id="rvTier">S</div>
+        <div class="grow"><div class="t1" id="rvT1">Your answer</div><div class="t2" id="rvT2">—</div><div class="t3" id="rvT3">—</div></div>
+        <button class="btn main" id="nextBtn" style="display:none">Next prompt ▸</button>
+      </div>
+      <div class="track" id="track"></div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section class="screen" id="results">
+    <div class="card" style="padding:28px">
+      <div class="res-top">
+        <div><div class="medal" id="medal"><div class="disc"></div><div class="ring"></div><div class="glyph" id="medalGlyph"></div><div class="shine"></div></div><div class="rname" id="rankName">Gold</div></div>
+        <div>
+          <div class="res-head" id="resHead">Daily #1 · Results</div>
+          <div class="bigscore" id="bigScore">0</div>
+          <div class="res-sub" id="resSub"></div>
+          <div class="nextrank"><i id="nextFill"></i></div>
+          <div class="mini" id="nextTxt" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>Where you stand · <span id="histN">0</span> runs</h3><canvas class="hist" id="hist"></canvas></div>
+    <div class="card" style="margin-top:12px"><h3>Your rounds</h3><table class="recap" id="recap"></table></div>
+    <div class="res-actions"><button class="btn main" id="shareBtn">Share result</button><button class="btn ghost" id="againBtn">Practice run</button><button class="btn ghost" id="homeBtn">Home</button><button class="btn ghost" id="reportBtn">Copy report for the developer</button></div>
+    <div class="foot" id="foot"></div>
+  </section>
+</div>
+
+<div class="modal" id="howModal"><div class="card"><h3>How to play</h3>
+<p>You get seven prompts — anime and video games — starting easy and getting harder each round. Type any valid answer within 30 seconds.</p>
+<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Some forms cost you HP to use.</p>
+<p style="margin-top:10px">Three answers we don't recognise, or the timer running out, and the rival counterattacks. Damage carries over between rounds — knock a rival out and the next one steps in: the Oni Brute, then the Iron Warden, then the Hollow, and round again. Lose all your HP and the run ends.</p>
+<p style="margin-top:10px">Your score is the total damage you deal. It sets your rank: Bronze, Silver, Gold or Platinum.</p>
+<div style="margin-top:16px;text-align:right"><button class="btn main" id="howClose">Got it</button></div></div></div>
+<div class="modal" id="repModal"><div class="card"><h3>Your play report</h3>
+<p style="font-size:13px;color:var(--muted)">Every run on this device, with what you typed, rejected guesses and anything you flagged. Copy it and send it to the developer.</p>
+<textarea class="rep" id="repTxt" readonly></textarea>
+<div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end"><button class="btn ghost" id="repClose">Close</button><button class="btn main" id="repCopy">Copy report</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="prompts.js"></script>
+<script src="prompts2.js"></script>
+<script src="prompts3.js"></script>
+<script>
+(() => {
+/* ================= CONFIG ================= */
+const CFG = { rounds: 7, time: 30, strikes: 3, hp: 150, rivalHP: 200, missDmg: 20 };
+const TIERS = {
+  S: { name: 'Mythic', col: '#dfe8ff', pts: 100, taken: 0, cuts: ['s'], abil: { s: 'Silver Instinct' } },
+  A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 25, cuts: ['a'], abil: { a: 'Rock' } },
+  B: { name: 'Epic', col: '#b98cff', pts: 50, taken: 0, cuts: ['b'], abil: { b: 'Malicious Fate' } },
+  C: { name: 'Rare', col: '#6aa8ff', pts: 35, taken: 0, cuts: ['c'], abil: { c: 'Phantom Rush' } },
+  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 0, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
+  E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 15, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
+};
+const ORDER = ['S', 'A', 'B', 'C', 'D', 'E'];
+// rank bands (tuned from playtests)
+const RANKS = [
+  { key: 'bronze', name: 'Bronze', min: 0, c: 'conic-gradient(from 210deg,#6b3d1f,#e5a774,#8b5430,#f4c99f,#7a4626,#d9955f,#6b3d1f)', i: 'radial-gradient(circle at 35% 30%,#f0bd8c,#a8693b 55%,#6b3d1f)', t: 'linear-gradient(90deg,#c98652,#f6cfa5,#b0703e)', ink: '#4a2610' },
+  { key: 'silver', name: 'Silver', min: 140, c: 'conic-gradient(from 210deg,#7d8590,#f6f8fb,#959eab,#ffffff,#88919d,#dfe4ea,#7d8590)', i: 'radial-gradient(circle at 35% 30%,#ffffff,#b8c0ca 55%,#7d8590)', t: 'linear-gradient(90deg,#aab3bf,#ffffff,#9aa3af)', ink: '#3a4048' },
+  { key: 'gold', name: 'Gold', min: 240, c: 'conic-gradient(from 210deg,#8f6410,#ffe58f,#b8861f,#fff4c2,#a27416,#ffd35c,#8f6410)', i: 'radial-gradient(circle at 35% 30%,#fff1b5,#e2b13b 55%,#986a12)', t: 'linear-gradient(90deg,#e8b53e,#fff3bd,#d39b23)', ink: '#5a3d05' },
+  { key: 'platinum', name: 'Platinum', min: 340, c: 'conic-gradient(from 210deg,#7e9cc0,#f2fbff,#b6c7ef,#ffffff,#c9b8f2,#e6f6ff,#8fb7d8,#7e9cc0)', i: 'radial-gradient(circle at 35% 30%,#ffffff,#cfe2f7 50%,#8aa6cc)', t: 'linear-gradient(90deg,#9fd0ff,#ffffff,#d6c2ff,#ffffff,#9fd0ff)', ink: '#2c3d5c' },
+];
+const rankOf = s => RANKS.reduce((r, k) => s >= k.min ? k : r, RANKS[0]);
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+// rivals come in this order, then the cycle repeats
+const FOES = [{ id: 'oni', name: 'Oni Brute' }, { id: 'warden', name: 'Iron Warden' }, { id: 'hollow', name: 'The Hollow' }];
+const foe = n => FOES[n % FOES.length];
+const Q = new URLSearchParams(location.search), FAST = Q.has('fast');
+const $ = id => document.getElementById(id);
+
+/* ================= PROMPTS + MATCHING ================= */
+const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/♀/g, ' f').replace(/♂/g, ' m').replace(/&/g, ' and ').replace(/^\s*the\s+/, '').replace(/[^a-z0-9]/g, '');
+const PROMPTS = window.FF_PROMPTS.map(p => {
+  const answers = []; const keys = new Map();
+  for (const line of p.a.trim().split('\n')) { const tier = line.trim()[0], parts = line.trim().slice(1).split('|').map(x => x.trim()).filter(Boolean); if (!TIERS[tier] || !parts.length) continue;
+    const ans = { tier, name: parts[0], key: norm(parts[0]) }; answers.push(ans);
+    for (const al of parts) { const k = norm(al); if (k && !keys.has(k)) keys.set(k, ans); } }
+  return Object.assign({}, p, { answers, keys });
+});
+function osa(a, b, max) { const la = a.length, lb = b.length; if (Math.abs(la - lb) > max) return max + 1; let prev2 = null, prev = Array.from({ length: lb + 1 }, (_, j) => j);
+  for (let i = 1; i <= la; i++) { const cur = [i]; let best = i; for (let j = 1; j <= lb; j++) { const c = a[i - 1] === b[j - 1] ? 0 : 1; let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c); if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1); cur.push(v); if (v < best) best = v; } if (best > max) return max + 1; prev2 = prev; prev = cur; } return prev[lb]; }
+function match(p, raw) { const k = norm(raw); if (!k) return { none: true };
+  if (p.keys.has(k)) return { ans: p.keys.get(k) };
+  let best = 9, hits = new Set(); for (const [key, ans] of p.keys) { if (key.length < 5) continue; const tol = key.length <= 7 ? 1 : 2, d = osa(k, key, tol); if (d <= tol) { if (d < best) { best = d; hits = new Set([ans]); } else if (d === best) hits.add(ans); } }
+  if (hits.size === 1) return { ans: [...hits][0], fuzzy: true }; if (hits.size > 1) return { ambiguous: true };
+  // contained match: a known answer inside a longer phrase ("geralt of rivia", "tomb raider 2013", "kirby anime"), longest answer wins
+  const toks = (raw || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' and ').split(/[^a-z0-9]+/).filter(Boolean), spans = new Set();
+  for (let i = 0; i < toks.length; i++) { let acc = ''; for (let j = i; j < toks.length; j++) { acc += toks[j]; spans.add(acc); } }
+  let bl = 0, cands = new Set(); for (const [key, ans] of p.keys) { if (key.length < 4 || key.length < k.length * 0.25 || !spans.has(key)) continue; if (key.length > bl) { bl = key.length; cands = new Set([ans]); } else if (key.length === bl) cands.add(ans); }
+  if (cands.size === 1) return { ans: [...cands][0], fuzzy: true }; if (cands.size > 1) return { ambiguous: true };
+  // short form of a longer answer ("castlevania" → Symphony of the Night): only when exactly one answer starts with it
+  if (k.length >= 6) { const pre = new Set(); for (const [key, ans] of p.keys) if (key.startsWith(k) && k.length >= key.length * 0.5) pre.add(ans); if (pre.size === 1) return { ans: [...pre][0], fuzzy: true }; if (pre.size > 1) return { ambiguous: true }; }
+  return { none: true }; }
+
+/* ================= DAILY SELECTION ================= */
+const EPOCH = new Date(2026, 10, 17); const today = new Date(); today.setHours(0, 0, 0, 0);
+const DAY = Math.max(0, Math.round((today - EPOCH) / 864e5)), DAYNO = DAY + 1;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hashStr = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const byHash = (a, b) => hashStr(a.id) - hashStr(b.id);
+const POOLS = Array.from({ length: 7 }, (_, i) => PROMPTS.filter(p => p.lvl === i + 1).sort(byHash));
+// rounds 5–7 split into OPEN prompts (any series, anyone can answer) and DEEP prompts (one franchise).
+// Each run gets exactly one deep prompt among those three rounds, so the hard end never locks a player out twice.
+const HARD = [5, 6, 7].map(l => ({ open: POOLS[l - 1].filter(p => p.open), deep: POOLS[l - 1].filter(p => !p.open) }));
+const deepLevelOn = day => 5 + (day % 3);
+// daily: each pool walks through its prompts in a fixed order, so nothing repeats until that pool has been used up
+function dailySet(day) { return POOLS.map((pool, i) => { const lvl = i + 1; if (lvl < 5) return pool[(day + i * 3) % pool.length];
+  const k = lvl - 5, h = HARD[k], deepDays = day > k ? Math.floor((day - k - 1) / 3) + 1 : 0, openDays = day - deepDays;
+  return deepLevelOn(day) === lvl && h.deep.length ? h.deep[(deepDays + k) % h.deep.length] : h.open[(openDays + k * 2) % h.open.length]; }); }
+function pickSet(r) { const dl = 5 + Math.floor(r() * 3); return POOLS.map((pool, i) => { const lvl = i + 1; if (lvl < 5) return pool[Math.floor(r() * pool.length)];
+  const h = HARD[lvl - 5], src = lvl === dl && h.deep.length ? h.deep : h.open; return src[Math.floor(r() * src.length)]; }); }
+
+/* ================= STORAGE: shared player pool ================= */
+const BIN = 25, NBINS = 28, SHARDS = 8;
+const emptyStats = () => ({ n: 0, bins: new Array(NBINS).fill(0), pn: {}, ans: {} });
+function addRun(st, run) { st.n++; st.bins[Math.min(NBINS - 1, Math.floor(run.score / BIN))]++; for (const a of run.ans || []) { if (!a || !a.p) continue; st.pn[a.p] = (st.pn[a.p] || 0) + 1; if (a.a) { const m = st.ans[a.p] = st.ans[a.p] || {}; m[a.a] = (m[a.a] || 0) + 1; } } return st; }
+function mergeStats(list) { const out = emptyStats(); for (const s of list) { if (!s || typeof s.n !== 'number') continue; out.n += s.n; (s.bins || []).forEach((v, i) => { if (i < NBINS) out.bins[i] += v || 0; }); for (const p in s.pn || {}) out.pn[p] = (out.pn[p] || 0) + s.pn[p]; for (const p in s.ans || {}) { const m = out.ans[p] = out.ans[p] || {}; for (const k in s.ans[p]) m[k] = (m[k] || 0) + s.ans[p][k]; } } return out; }
+const Store = { db: null, uid: null, ready: false,
+  async init() { try { if (window.claude && claude.use) { const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); this.db = db; if (user) { try { this.uid = await user.id(); } catch (e) { } } } } catch (e) { } this.ready = true; },
+  local() { try { return JSON.parse(localStorage.getItem('ff_runs') || '[]'); } catch (e) { return []; } },
+  // each finished game: append to the player's own history, then bump one summary shard (leased so concurrent games don't overwrite each other)
+  async save(run) { try { const L = this.local(); L.push(run); localStorage.setItem('ff_runs', JSON.stringify(L.slice(-300))); } catch (e) { }
+    if (!(this.db && this.uid)) return 'local';
+    try { const ref = this.db.doc('plays/' + this.uid); const snap = await ref.get(); const runs = (snap.exists && Array.isArray(snap.data().runs)) ? snap.data().runs.slice() : []; runs.push(run); await ref.set({ runs: runs.slice(-200), updated: Date.now() }); } catch (e) { console.warn('save', e); return 'local'; }
+    const k = Math.floor(Math.random() * SHARDS), sref = this.db.doc('stats/s' + k);
+    for (let tries = 0; tries < 8; tries++) { try { const L = await sref.acquire({ holder: this.uid + ':' + run.ts, ttlMs: 5000 }); if (L && L.acquired) { const s = await sref.get(); const cur = s.exists ? JSON.parse(JSON.stringify(s.data())) : emptyStats(); if (!Array.isArray(cur.bins)) Object.assign(cur, emptyStats()); addRun(cur, run); delete cur.lease; await sref.set({ n: cur.n, bins: cur.bins, pn: cur.pn, ans: cur.ans, updated: Date.now() }); return 'shared'; } } catch (e) { console.warn('stats', e); }
+      await new Promise(r => setTimeout(r, 250 + Math.random() * 600 * (tries + 1))); }
+    return 'shared'; },
+  async patch(run) { try { const L = this.local(), i = L.findIndex(r => r.ts === run.ts); if (i >= 0) { L[i] = run; localStorage.setItem('ff_runs', JSON.stringify(L)); } } catch (e) { }
+    if (!(this.db && this.uid)) return; try { const ref = this.db.doc('plays/' + this.uid), snap = await ref.get(); if (!snap.exists) return; const runs = (snap.data().runs || []).slice(), i = runs.findIndex(r => r.ts === run.ts); if (i < 0) return; runs[i] = run; await ref.set({ runs, updated: Date.now() }); } catch (e) { console.warn('patch', e); } },
+  // the leaderboard reads only the small summary shards, however many people have played
+  async stats() { if (this.db) { try { const snap = await Promise.race([this.db.collection('stats').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]); const st = mergeStats(snap.docs.map(d => d.data())); if (st.n) return { stats: st, shared: true }; } catch (e) { console.warn('stats load', e); } }
+    return { stats: this.local().reduce((s, r) => addRun(s, r), emptyStats()), shared: false }; },
+};
+Store.init();
+
+/* ================= AUDIO (one unlocked element plays every cutscene) ================= */
+const AUDIO = new Audio(); AUDIO.preload = 'auto'; AUDIO.setAttribute('playsinline', '');
+let soundOn = localStorage.getItem('ff_sound') !== 'off', AC = null;
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+function unlockAudio() { try { AUDIO.src = SILENT; AUDIO.play().then(() => AUDIO.pause()).catch(() => { }); } catch (e) { } try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) { } }
+function blip(type) { if (!soundOn || !AC) return; try { const t0 = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.connect(g).connect(AC.destination);
+  if (type === 'tick') { o.type = 'sine'; o.frequency.value = 1320; g.gain.setValueAtTime(.06, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .06); o.start(t0); o.stop(t0 + .07); }
+  else if (type === 'bad') { o.type = 'square'; o.frequency.setValueAtTime(180, t0); o.frequency.exponentialRampToValueAtTime(110, t0 + .18); g.gain.setValueAtTime(.05, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .2); o.start(t0); o.stop(t0 + .22); }
+  else if (type === 'good') { o.type = 'triangle'; o.frequency.setValueAtTime(660, t0); o.frequency.setValueAtTime(990, t0 + .08); g.gain.setValueAtTime(.08, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .35); o.start(t0); o.stop(t0 + .36); }
+  else if (type === 'pts') { o.type = 'sine'; o.frequency.setValueAtTime(880, t0); o.frequency.exponentialRampToValueAtTime(1760, t0 + .25); g.gain.setValueAtTime(.06, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .4); o.start(t0); o.stop(t0 + .42); }
+} catch (e) { } }
+function sndLabel() { $('sndBtn').textContent = soundOn ? 'Sound on' : 'Sound off'; $('sndBtn').classList.toggle('off', !soundOn); }
+$('sndBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('ff_sound', soundOn ? 'on' : 'off'); if (!soundOn) AUDIO.pause(); sndLabel(); }; sndLabel();
+
+/* ================= CUTSCENES (embedded, preloaded) ================= */
+const CUT_IDS = ['x', 's', 'a', 'b', 'c', 'd', 'd2', 'e', 'e2'];
+const frames = {}, cutSrc = {}, ready = {}, audioIn = {};
+let activeCut = null, cutResolve = null, cutGuard = 0;
+function loadProgress() { const n = CUT_IDS.filter(i => audioIn[i]).length, r = CUT_IDS.filter(i => ready[i]).length; $('loadBar').style.width = Math.round((n + r) / (CUT_IDS.length * 2) * 100) + '%';
+  const ok = r === CUT_IDS.length && (n >= CUT_IDS.length || (n >= 4 && performance.now() > 6000)); $('loadLine').textContent = n >= CUT_IDS.length ? 'Ready' : ok ? `Ready · loading sound ${n}/${CUT_IDS.length}` : `Preparing cutscenes · ${n}/${CUT_IDS.length}`; if (ok || loadTimedOut) enableStart(); }
+let loadTimedOut = false; setTimeout(() => { loadTimedOut = true; loadProgress(); }, 20000);
+function enableStart() { $('playDaily').disabled = false; $('playPractice').disabled = false; if (loadTimedOut) $('loadLine').textContent = 'Ready'; }
+function mountCuts() { const st = $('stage');
+  for (const id of CUT_IDS) { const f = document.createElement('iframe'); f.src = `cut/${id}.html?embed=1&id=${id}`; f.title = 'cutscene'; f.setAttribute('allow', 'autoplay'); f.dataset.id = id; st.insertBefore(f, st.firstChild); frames[id] = f; } }
+addEventListener('message', e => { const m = e.data; if (!m || !m.ff) return;
+  if (m.ff === 'ready') { ready[m.id] = 1; if (m.id === 'x') showBackdrop(); loadProgress(); }
+  else if (m.ff === 'audio') { if (m.buf) cutSrc[m.id] = URL.createObjectURL(new Blob([m.buf], { type: 'audio/wav' })); audioIn[m.id] = 1; loadProgress(); }
+  else if (m.ff === 'done') { if (m.id === activeCut) finishCut(); } });
+function post(id, msg) { try { frames[id].contentWindow.postMessage(msg, '*'); } catch (e) { } }
+function curFoe() { return foe(G ? G.rvN : 0).id; }
+function showBackdrop() { post('x', { ff: 'still', t: .3, rival: curFoe() }); for (const id of CUT_IDS) frames[id] && frames[id].classList.toggle('vis', id === 'x'); placeHero(); }
+function placeHero() { const hs = $('heroStage'), f = frames.x; if (!f) return; if ($('home').classList.contains('on')) { if (f.parentNode !== hs) { hs.appendChild(f); post('x', { ff: 'still', t: .3, rival: curFoe() }); } f.classList.add('vis'); } else if (f.parentNode !== $('stage')) { $('stage').insertBefore(f, $('stage').firstChild); post('x', { ff: 'still', t: .3, rival: curFoe() }); } }
+function playCut(id, pts) { return new Promise(res => { if (FAST || !frames[id]) return res();
+  placeHero(); activeCut = id; cutResolve = res; post(id, { ff: 'play', pts, rival: curFoe() });
+  setTimeout(() => { for (const k of CUT_IDS) frames[k].classList.toggle('vis', k === id); }, 70);
+  if (soundOn && cutSrc[id]) { try { AUDIO.src = cutSrc[id]; AUDIO.currentTime = 0; AUDIO.play().catch(() => { }); } catch (e) { } }
+  $('skipBtn').classList.add('on'); $('hud').classList.add('hide');
+  const clock = () => { if (activeCut !== id) return; post(id, { ff: 'clock', t: AUDIO.currentTime, paused: AUDIO.paused || !soundOn || !cutSrc[id] }); requestAnimationFrame(clock); }; requestAnimationFrame(clock);
+  clearTimeout(cutGuard); cutGuard = setTimeout(() => { if (activeCut === id) finishCut(); }, 30000); }); }
+function finishCut() { const id = activeCut; activeCut = null; clearTimeout(cutGuard); try { AUDIO.pause(); } catch (e) { } $('skipBtn').classList.remove('on'); $('hud').classList.remove('hide'); const r = cutResolve; cutResolve = null;
+  setTimeout(() => { if (activeCut) return; showBackdrop(); }, 60); r && r(); }
+$('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); };
+
+/* ================= HOME ================= */
+$('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+$('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b style="color:${T.col}">${k}</b><span class="nm">${T.name}<small>${ab}</small></span><span class="pt" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
+$('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
+const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
+$('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
+$('playDaily').onclick = () => { unlockAudio(); startGame('daily'); };
+$('playPractice').onclick = () => { unlockAudio(); startGame('practice'); };
+$('againBtn').onclick = () => { unlockAudio(); startGame('practice'); };
+$('homeBtn').onclick = () => { $('playDaily').textContent = `Replay daily #${DAYNO}`; show('home'); };
+
+/* ================= GAME ================= */
+let G = null, timerRAF = 0;
+function startGame(mode) {
+  const r = mode === 'daily' ? rng(DAY * 7919 + 13) : rng((Math.random() * 2 ** 31) | 0);
+  G = { mode, prompts: Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
+  setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
+  show('play'); drawTrack(); nextRound(true);
+}
+function setHP(instant) { const h = clamp(G.hp / CFG.hp), v = clamp(G.rv / CFG.rivalHP);
+  for (const [fill, lag, k] of [['hpFill', 'hpLag', h], ['rvFill', 'rvLag', v]]) { const a = $(fill), b = $(lag); if (instant) { a.style.transition = b.style.transition = 'none'; } a.style.transform = `scaleX(${k})`; b.style.transform = `scaleX(${k})`; if (instant) { a.offsetWidth; a.style.transition = b.style.transition = ''; } }
+  $('hpTxt').textContent = `${Math.max(0, G.hp)} / ${CFG.hp}`; $('rvTxt').textContent = `${Math.max(0, G.rv)} / ${CFG.rivalHP}`; }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
+function nextRound(first) {
+  if (G.round >= CFG.rounds || G.hp <= 0) return endGame();
+  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = [];
+  $('roundTxt').textContent = `Round ${G.round + 1} / ${CFG.rounds}`; $('pips').innerHTML = Array.from({ length: 7 }, (_, i) => `<i class="${i < p.lvl ? 'on' : ''}"></i>`).join('');
+  $('catTxt').textContent = `${p.cat} · ${p.src}`; $('qTxt').textContent = p.q; $('ans').value = ''; $('fb').textContent = G.round === 0 ? 'Rarer answers hit harder.' : 'Any valid answer attacks.'; $('fb').className = 'fb';
+  drawStrikes(); drawTrack(); $('askView').style.display = ''; $('reveal').classList.remove('on'); $('nextBtn').style.display = 'none';
+  setTimeout(() => $('ans').focus(), first ? 300 : 50);
+  startTimer();
+}
+function drawStrikes() { $('strikes').innerHTML = 'MISSES ' + Array.from({ length: CFG.strikes }, (_, i) => `<i class="${i < G.strikes ? 'x' : ''}"></i>`).join(''); }
+function startTimer() { cancelAnimationFrame(timerRAF); const t0 = performance.now(), dur = CFG.time * 1000; let lastSec = CFG.time;
+  const tick = () => { if (G.locked) return; const left = Math.max(0, dur - (performance.now() - t0)), sec = Math.ceil(left / 1000); $('timerFill').style.transform = `scaleX(${left / dur})`; $('tleft').textContent = sec; const low = sec <= 5; $('timer').classList.toggle('low', low); $('tleft').classList.toggle('low', low); if (low && sec !== lastSec && sec > 0) blip('tick'); lastSec = sec; if (left <= 0) return resolve(null, 'time'); timerRAF = requestAnimationFrame(tick); };
+  G.timeLeft = () => Math.max(0, dur - (performance.now() - t0)); timerRAF = requestAnimationFrame(tick); }
+$('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked) return; unlockAudio(); const raw = $('ans').value.trim(); if (!raw) return; const p = G.prompts[G.round], m = match(p, raw);
+  if (m.ans) return resolve(m.ans, null, raw);
+  G.strikes++; drawStrikes(); blip('bad'); const f = $('ansForm'); f.classList.remove('shake'); f.offsetWidth; f.classList.add('shake');
+  $('fb').className = 'fb bad'; $('fb').textContent = m.ambiguous ? `“${raw}” could be more than one answer — be more specific.` : `“${raw}” isn't on our list. ${CFG.strikes - G.strikes > 0 ? (CFG.strikes - G.strikes) + ' miss' + (CFG.strikes - G.strikes > 1 ? 'es' : '') + ' left.' : ''}`;
+  if (!m.ambiguous) { const b = document.createElement('button'); b.type = 'button'; b.className = 'claim'; b.textContent = 'I think this is an answer'; b.onclick = () => { addClaim(p.id, raw); b.classList.add('on'); b.textContent = 'Flagged for review ✓'; $('ans').focus(); }; $('fb').appendChild(b); }
+  (G.missed = G.missed || []).push(raw); G.rmiss.push(raw); $('ans').select(); if (G.strikes >= CFG.strikes) resolve(null, 'strikes'); };
+async function resolve(ans, why, raw) {
+  if (G.locked) return; G.locked = true; cancelAnimationFrame(timerRAF); $('ans').blur();
+  const p = G.prompts[G.round], tier = ans ? ans.tier : null, T = tier ? TIERS[tier] : null;
+  const cut = tier ? T.cuts[Math.floor(Math.random() * T.cuts.length)] : 'x', abil = tier ? T.abil[cut] : 'Enemy Counter';
+  const pts = tier ? T.pts : 0, dealt = tier ? (tier === 'S' ? G.rv : T.pts) : 0, taken = tier ? T.taken : CFG.missDmg;
+  // reveal panel
+  $('askView').style.display = 'none'; $('reveal').classList.add('on'); const tb = $('rvTier'); tb.textContent = tier || '✕'; tb.style.background = tier ? T.col : 'var(--X)';
+  $('rvT1').textContent = tier ? `${T.name} · ${abil}` : (why === 'time' ? "Time's up" : 'Out of guesses');
+  $('rvT2').textContent = tier ? ans.name : 'No attack';
+  $('rvT3').textContent = tier ? `${tier === 'S' ? 'Instant K.O.' : dealt + ' damage'}${taken ? ` · costs you ${taken} HP` : ''} · +${pts} points` : `The rival counterattacks for ${taken} HP.`;
+  blip(tier ? 'good' : 'bad');
+  G.res[G.round] = { miss: (G.rmiss || []).slice(), p: p.id, a: tier ? ans.key : null, name: tier ? ans.name : null, raw: raw || null, tier, pts, dealt, taken, cut, why: why || null, ms: Math.round(CFG.time * 1000 - (G.timeLeft ? G.timeLeft() : 0)) };
+  drawTrack();
+  await wait(FAST ? 0 : 900);
+  await playCut(cut, pts);
+  // apply results after the cutscene
+  G.score += pts; G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
+  if (pts) { const fl = document.createElement('div'); fl.className = 'float'; fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
+  let note = '';
+  if (G.rv <= 0) { G.kos++; G.rvN++; note = 'ko'; await banner('K.O.', `${foe(G.rvN - 1).name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP(); showBackdrop(); }
+  if (G.hp <= 0) { await banner('DEFEATED', 'Your HP hit zero'); }
+  G.round++;
+  if (G.round >= CFG.rounds || G.hp <= 0) { $('nextBtn').textContent = 'See results ▸'; } else $('nextBtn').textContent = 'Next prompt ▸';
+  $('nextBtn').style.display = ''; $('nextBtn').focus();
+  if (FAST) $('nextBtn').click();
+}
+$('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
+function banner(b, s) { return new Promise(res => { if (FAST) return res(); $('bannerB').textContent = b; $('bannerS').textContent = s; $('banner').classList.add('on'); setTimeout(() => { $('banner').classList.remove('on'); setTimeout(res, 250); }, 1700); }); }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* ================= ANSWER CLAIMS ("I think this is an answer") ================= */
+function addClaim(pid, raw) { G.claims = G.claims || []; if (!G.claims.some(c => c.p === pid && c.raw === raw)) G.claims.push({ p: pid, raw });
+  try { const L = JSON.parse(localStorage.getItem('ff_claims') || '[]'); L.push({ p: pid, raw, ts: Date.now() }); localStorage.setItem('ff_claims', JSON.stringify(L.slice(-500))); } catch (e) { } }
+// plain-text report a tester can paste to the developer: every run on this device, with typed answers, rejected guesses and flags
+function buildReport() { const runs = Store.local(), P = id => PROMPTS.find(p => p.id === id) || { q: id };
+  const lines = [`FINAL FORM PLAY REPORT · ${runs.length} run${runs.length === 1 ? '' : 's'} · ${new Date().toISOString().slice(0, 10)}`];
+  runs.forEach((r, i) => { lines.push('', `Run ${i + 1} · ${new Date(r.ts).toLocaleString()} · ${r.mode} · ${r.score} pts · ${r.rank}`);
+    (r.ans || []).forEach((a, j) => { const p = P(a.p), nm = a.a ? ((p.answers || []).find(x => x.key === a.a) || {}).name || a.a : null;
+      lines.push(`  R${j + 1} [${a.p}] ${a.t ? a.t + ' · ' + nm + (a.r && a.r !== nm ? ` (typed "${a.r}")` : '') : 'no answer'}${a.miss && a.miss.length ? ' · rejected: ' + a.miss.map(m => `"${m}"`).join(', ') : ''}`); });
+    if (r.claims && r.claims.length) lines.push('  FLAGGED: ' + r.claims.map(c => `[${c.p}] "${c.raw}"`).join(', ')); });
+  return lines.join('\n'); }
+function openReport() { $('repTxt').value = buildReport(); $('repModal').classList.add('on'); }
+
+/* ================= RESULTS ================= */
+async function endGame() {
+  G.over = true; const rank = rankOf(G.score);
+  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() };
+  if (Q.get('who')) run.who = Q.get('who');
+  if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
+  window.__lastRun = run;
+  show('results'); renderResults(run, null);
+  const where = await Store.save(run); const all = await Store.stats(); renderResults(run, all, where);
+}
+function renderResults(run, all, where) {
+  const rank = rankOf(run.score), ri = RANKS.indexOf(rank), next = RANKS[ri + 1];
+  const md = $('medal'); md.className = 'medal ' + rank.key; md.style.setProperty('--m-c', rank.c); md.style.setProperty('--m-i', rank.i); $('rankName').style.setProperty('--m-t', rank.t); $('rankName').textContent = rank.name;
+  $('medalGlyph').innerHTML = medalSVG(rank);
+  md.querySelectorAll('.spark').forEach(s => s.remove()); if (ri >= 2) for (let i = 0; i < (ri === 3 ? 7 : 4); i++) { const s = document.createElement('i'); s.className = 'spark'; const a = i / (ri === 3 ? 7 : 4) * 6.283 + .4, rr = 86 + (i % 2) * 14; s.style.left = (95 + Math.cos(a) * rr - 5) + 'px'; s.style.top = (95 + Math.sin(a) * rr - 5) + 'px'; s.style.animationDelay = (i * .37) + 's'; md.appendChild(s); }
+  $('resHead').textContent = (run.mode === 'daily' ? `Daily #${run.day + 1}` : 'Practice run') + (run.alive ? ' · Complete' : ' · Defeated');
+  if (!all) countUp($('bigScore'), run.score);
+  const S = all ? all.stats : emptyStats(), n = S.n, mb = Math.min(NBINS - 1, Math.floor(run.score / BIN)), below = S.bins.slice(0, mb).reduce((a, b) => a + b, 0), same = S.bins[mb] || 0;
+  const pct = n > 1 ? Math.round(clamp((below + Math.max(0, same - 1) / 2) / (n - 1)) * 100) : null;
+  const hits = run.ans.filter(a => a.t).length, best = run.ans.reduce((b, a) => a.t && (!b || ORDER.indexOf(a.t) < ORDER.indexOf(b)) ? a.t : b, null);
+  $('resSub').innerHTML = `${hits}/7 answers landed${best ? ` · best form <b style="color:${TIERS[best].col}">${TIERS[best].name}</b>` : ''}${run.kos ? ` · <b>${run.kos}</b> rival${run.kos > 1 ? 's' : ''} K.O.'d` : ''}` + (all ? (pct != null ? `<br>You beat <b>${pct}%</b> of ${n - 1} other run${n - 1 === 1 ? '' : 's'}.` : `<br>You're the first run on the board.`) : '<br><span style="color:var(--muted)">Loading the leaderboard…</span>');
+  $('nextFill').style.background = (next || rank).t; requestAnimationFrame(() => { $('nextFill').style.width = (next ? clamp((run.score - rank.min) / (next.min - rank.min)) * 100 : 100) + '%'; });
+  $('nextTxt').textContent = next ? `${next.min - run.score} points to ${next.name}` : 'Top rank reached';
+  $('histN').textContent = n; window.__histBins = S.bins; drawHist(S.bins, run.score);
+  const P = id => PROMPTS.find(p => p.id === id);
+  $('recap').innerHTML = run.ans.map((a, i) => { const p = P(a.p), T = a.t ? TIERS[a.t] : null, tot = S.pn[a.p] || 0, cnt = a.a ? ((S.ans[a.p] || {})[a.a] || 0) : 0;
+    const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.tier === 'S').concat(p.answers.filter(x => x.tier === 'A')).filter(x => x.key !== a.a).slice(0, 3).map(x => x.name);
+    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName || '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${Math.round(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
+  $('recap').querySelectorAll('.claim').forEach(b => b.onclick = () => { if (b.classList.contains('on')) return; const raw = b.dataset.raw, pid = b.dataset.p; addClaim(pid, raw); run.claims = run.claims || []; if (!run.claims.some(c => c.p === pid && c.raw === raw)) run.claims.push({ p: pid, raw }); b.classList.add('on'); b.textContent = 'Flagged ✓'; Store.patch(run); toast('Thanks — flagged for review'); });
+  $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
+  window.__resultsReady = !!all;
+}
+function countUp(el, to) { const t0 = performance.now(), d = 1300; const f = () => { const k = Math.min(1, (performance.now() - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); }; f(); }
+function medalSVG(r) { const c = r.ink; return `<svg viewBox="0 0 100 100" fill="none"><path d="M50 14 L60 38 L86 40 L66 57 L72 83 L50 69 L28 83 L34 57 L14 40 L40 38 Z" fill="${c}" fill-opacity=".85"/><path d="M50 22 L57.5 40 L77 41.5 L62 54 L66.5 73.5 L50 63 L33.5 73.5 L38 54 L23 41.5 L42.5 40 Z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>${RANKS.indexOf(r) >= 2 ? `<circle cx="50" cy="50" r="44" stroke="${c}" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 4"/>` : ''}</svg>`; }
+function drawHist(binsIn, mine) { const cv = $('hist'), dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth || 900, H = 190; cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+  const MAX = 700, nb = NBINS, bins = binsIn.slice(0, nb); const top = Math.max(1, ...bins), pl = 8, pr = 8, pb = 26, pt = 14, bw = (W - pl - pr) / nb;
+  const X = s => pl + s / MAX * (W - pl - pr);
+  RANKS.forEach((r, i) => { const x0 = X(r.min), x1 = X(RANKS[i + 1] ? RANKS[i + 1].min : MAX); const gr = g.createLinearGradient(0, pt, 0, H - pb); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, ['rgba(201,134,82,.12)', 'rgba(200,208,218,.1)', 'rgba(232,181,62,.12)', 'rgba(159,208,255,.13)'][i]); g.fillStyle = gr; g.fillRect(x0, pt, x1 - x0, H - pb - pt);
+    g.fillStyle = ['#c98652', '#c8d0da', '#e8b53e', '#9fd0ff'][i]; g.font = '700 9px Inter'; g.textBaseline = 'top'; g.fillText(r.name.toUpperCase(), x0 + 6, H - pb + 8); });
+  const mb = Math.min(nb - 1, Math.floor(mine / BIN));
+  bins.forEach((v, i) => { if (!v) return; const h = (H - pb - pt - 10) * v / top, x = pl + i * bw + 1.5; g.fillStyle = i === mb ? '#ffffff' : 'rgba(236,235,230,.32)'; g.beginPath(); g.roundRect ? g.roundRect(x, H - pb - h, bw - 3, h, 3) : g.rect(x, H - pb - h, bw - 3, h); g.fill(); });
+  g.strokeStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(pl, H - pb + .5); g.lineTo(W - pr, H - pb + .5); g.stroke();
+  const mx = X(mine); g.strokeStyle = '#fff'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(mx, pt); g.lineTo(mx, H - pb); g.stroke(); g.setLineDash([]); g.fillStyle = '#fff'; g.font = '800 10px Inter'; g.textAlign = mx > W - 60 ? 'right' : 'left'; g.fillText('YOU · ' + mine, mx + (mx > W - 60 ? -6 : 6), pt); g.textAlign = 'left'; }
+$('reportBtn').onclick = openReport; $('myRepBtn').onclick = openReport; $('repClose').onclick = () => $('repModal').classList.remove('on');
+$('repCopy').onclick = async () => { const t = $('repTxt'); try { await navigator.clipboard.writeText(t.value); toast('Report copied'); } catch (e) { t.select(); document.execCommand('copy'); toast('Report copied'); } };
+$('shareBtn').onclick = async () => { const r = window.__lastRun; if (!r) return; const em = { S: '💎', A: '🟨', B: '🟪', C: '🟦', D: '🟩', E: '⬜' };
+  const txt = `FINAL FORM ${r.mode === 'daily' ? '#' + (r.day + 1) : '(practice)'} — ${r.score} pts · ${rankOf(r.score).name}\n${r.ans.map(a => a.t ? em[a.t] : '🟥').join('')}`;
+  try { await navigator.clipboard.writeText(txt); toast('Result copied'); } catch (e) { toast(txt); } };
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 2200); }
+addEventListener('resize', () => { if ($('results').classList.contains('on') && window.__lastRun) drawHist(window.__histBins || new Array(NBINS).fill(0), window.__lastRun.score); });
+
+/* ================= BOOT ================= */
+mountCuts(); placeHero(); loadProgress();
+window.__ff = { PROMPTS, dailySet, pickSet, match, norm, rankOf, RANKS, TIERS, state: () => G };
+})();
+</script>
+</body>
+</html>
