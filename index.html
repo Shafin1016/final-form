@@ -76,6 +76,10 @@ button{font-family:inherit;cursor:pointer}
 .score span{font:700 9px Inter;letter-spacing:.24em;color:var(--muted)}
 .float{position:absolute;left:50%;top:44px;transform:translateX(-50%);font:800 30px Inter;pointer-events:none;animation:floatup 1.5s ease forwards;text-shadow:0 2px 18px rgba(0,0,0,.7)}
 @keyframes floatup{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.08)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-26px) scale(1)}}
+.say{position:absolute;right:4%;top:7%;max-width:46%;padding:12px 18px 13px;background:#f2f1ec;color:#0b0b0e;border-radius:14px;font:800 clamp(13px,1.9vw,19px)/1.25 "Shippori Mincho B1",Georgia,serif;letter-spacing:.02em;opacity:0;transform:translateY(8px) scale(.94);transform-origin:80% 100%;transition:opacity .22s,transform .3s cubic-bezier(.2,1.4,.4,1);pointer-events:none;z-index:6;box-shadow:0 14px 30px -12px rgba(0,0,0,.7),0 0 0 2px #0b0b0e}
+.say.on{opacity:1;transform:none}
+.say small{display:block;font:700 9px Inter,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#a3332a;margin-bottom:5px}
+.say::after{content:"";position:absolute;left:24%;bottom:-13px;border:8px solid transparent;border-top:14px solid #f2f1ec;filter:drop-shadow(0 2px 0 #0b0b0e)}
 .banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:14px 26px;border-radius:12px;background:rgba(6,7,10,.78);border:1px solid var(--line2);text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
 .banner.on{opacity:1}
 .banner b{display:block;font:800 22px "Shippori Mincho B1",serif;letter-spacing:.22em}
@@ -177,7 +181,7 @@ button{font-family:inherit;cursor:pointer}
       <div class="copy">
         <div>
           <h2>FINAL FORM</h2>
-          <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Rarity comes from how many players gave the same answer: under 0.1% is Mythic, under 1% Legendary, under 4% Epic, under 10% Rare, under 25% Uncommon. Run out of time and the rival hits back.</p>
+          <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Run out of time and the rival hits back.</p>
         </div>
         <div class="cta">
           <button class="btn main" id="playDaily" disabled>Play daily #—</button>
@@ -196,7 +200,7 @@ button{font-family:inherit;cursor:pointer}
   <!-- ============ PLAY ============ -->
   <section class="screen" id="play">
     <div class="stagewrap">
-      <div class="stage" id="stage">
+      <div class="stage" id="stage"><div class="say" id="say"><small id="sayWho"></small><span id="sayTxt"></span></div>
         <div class="hud" id="hud">
           <div class="bar"><div class="who">You <em id="hpTxt">150 / 150</em></div><div class="hpo"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div></div>
           <div class="score"><b id="scoreTxt">0</b><span>POINTS</span></div>
@@ -266,7 +270,7 @@ button{font-family:inherit;cursor:pointer}
 const CFG = { rounds: 7, time: 30, strikes: 3, hp: 150, rivalHP: 200, missDmg: 20 };
 const TIERS = {
   S: { name: 'Mythic', col: '#dfe8ff', pts: 100, taken: 0, cuts: ['s'], abil: { s: 'Silver Instinct' } },
-  A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 25, cuts: ['a'], abil: { a: 'Rock' } },
+  A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 25, cuts: ['a', 'a2'], abil: { a: 'Rock', a2: 'Radiant Cannon' } },
   B: { name: 'Epic', col: '#b98cff', pts: 50, taken: 0, cuts: ['b'], abil: { b: 'Malicious Fate' } },
   C: { name: 'Rare', col: '#6aa8ff', pts: 35, taken: 0, cuts: ['c'], abil: { c: 'Phantom Rush' } },
   D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 0, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
@@ -377,7 +381,11 @@ function dynTier(p, ans) { const pn = EFF.pn[p.id] || 0; if (pn < MIN_SAMPLE) re
 const AUDIO = new Audio(); AUDIO.preload = 'auto'; AUDIO.setAttribute('playsinline', '');
 let soundOn = localStorage.getItem('ff_sound') !== 'off', AC = null;
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
-function unlockAudio() { try { AUDIO.src = SILENT; AUDIO.play().then(() => AUDIO.pause()).catch(() => { }); } catch (e) { } try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) { } }
+// one preloaded audio element per cutscene, so sound starts the instant a cutscene does
+const AUDS = {};
+function cutAudio(id, url) { if (AUDS[id]) return AUDS[id]; const el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', ''); el.src = url; try { el.load(); } catch (e) { } AUDS[id] = el; return el; }
+function unlockAudio() { try { AUDIO.src = SILENT; AUDIO.play().then(() => AUDIO.pause()).catch(() => { }); } catch (e) { }
+  for (const el of Object.values(AUDS)) { if (el.__ok) continue; try { el.muted = true; const pr = el.play(); if (pr && pr.then) pr.then(() => { el.pause(); el.currentTime = 0; el.muted = false; el.__ok = 1; }).catch(() => { el.muted = false; }); } catch (e) { el.muted = false; } } try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) { } }
 function blip(type) { if (!soundOn || !AC) return; try { const t0 = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.connect(g).connect(AC.destination);
   if (type === 'tick') { o.type = 'sine'; o.frequency.value = 1320; g.gain.setValueAtTime(.06, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .06); o.start(t0); o.stop(t0 + .07); }
   else if (type === 'bad') { o.type = 'square'; o.frequency.setValueAtTime(180, t0); o.frequency.exponentialRampToValueAtTime(110, t0 + .18); g.gain.setValueAtTime(.05, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .2); o.start(t0); o.stop(t0 + .22); }
@@ -385,12 +393,12 @@ function blip(type) { if (!soundOn || !AC) return; try { const t0 = AC.currentTi
   else if (type === 'pts') { o.type = 'sine'; o.frequency.setValueAtTime(880, t0); o.frequency.exponentialRampToValueAtTime(1760, t0 + .25); g.gain.setValueAtTime(.06, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .4); o.start(t0); o.stop(t0 + .42); }
 } catch (e) { } }
 function sndLabel() { $('sndBtn').textContent = soundOn ? 'Sound on' : 'Sound off'; $('sndBtn').classList.toggle('off', !soundOn); }
-$('sndBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('ff_sound', soundOn ? 'on' : 'off'); if (!soundOn) AUDIO.pause(); sndLabel(); }; sndLabel();
+$('sndBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('ff_sound', soundOn ? 'on' : 'off'); if (!soundOn) { AUDIO.pause(); if (CUR) CUR.pause(); } sndLabel(); }; sndLabel();
 
 /* ================= CUTSCENES (embedded, preloaded) ================= */
-const CUT_IDS = ['x', 's', 'a', 'b', 'c', 'd', 'd2', 'e', 'e2'];
+const CUT_IDS = ['x', 'i', 's', 'a', 'a2', 'b', 'c', 'd', 'd2', 'e', 'e2'];
 const frames = {}, cutSrc = {}, ready = {}, audioIn = {};
-let activeCut = null, cutResolve = null, cutGuard = 0;
+let activeCut = null, cutResolve = null, cutGuard = 0, CUR = null;
 function loadProgress() { const n = CUT_IDS.filter(i => audioIn[i]).length, r = CUT_IDS.filter(i => ready[i]).length; $('loadBar').style.width = Math.round((n + r) / (CUT_IDS.length * 2) * 100) + '%';
   const ok = r === CUT_IDS.length && (n >= CUT_IDS.length || (n >= 4 && performance.now() > 6000)); $('loadLine').textContent = n >= CUT_IDS.length ? 'Ready' : ok ? `Ready · loading sound ${n}/${CUT_IDS.length}` : `Preparing cutscenes · ${n}/${CUT_IDS.length}`; if (ok || loadTimedOut) enableStart(); }
 let loadTimedOut = false; setTimeout(() => { loadTimedOut = true; loadProgress(); }, 20000);
@@ -398,28 +406,31 @@ function enableStart() { $('playDaily').disabled = false; $('playPractice').disa
 function mountCuts() { const st = $('stage');
   for (const id of CUT_IDS) { const f = document.createElement('iframe'); f.src = `cut/${id}.html?embed=1&id=${id}`; f.title = 'cutscene'; f.setAttribute('allow', 'autoplay'); f.dataset.id = id; st.insertBefore(f, st.firstChild); frames[id] = f; } }
 addEventListener('message', e => { const m = e.data; if (!m || !m.ff) return;
-  if (m.ff === 'ready') { ready[m.id] = 1; if (m.id === 'x') showBackdrop(); loadProgress(); }
-  else if (m.ff === 'audio') { if (m.buf) cutSrc[m.id] = URL.createObjectURL(new Blob([m.buf], { type: 'audio/wav' })); audioIn[m.id] = 1; loadProgress(); }
+  if (m.ff === 'ready') { ready[m.id] = 1; if (m.id !== 'x') setTimeout(() => { if (!activeCut || activeCut !== m.id) post(m.id, { ff: 'warm' }); }, 1500 + CUT_IDS.indexOf(m.id) * 350); if (m.id === 'x') { if (activeCut) post('x', { ff: 'still', t: .3, rival: curFoe() }); else showBackdrop(); } loadProgress(); }
+  else if (m.ff === 'seek') { const el = AUDS[m.id]; if (el && m.id === activeCut && !el.paused) { try { el.currentTime = m.t; } catch (e) { } } }
+  else if (m.ff === 'audio') { if (m.url) { cutSrc[m.id] = m.url; cutAudio(m.id, m.url); } else if (m.buf) cutSrc[m.id] = URL.createObjectURL(new Blob([m.buf], { type: 'audio/wav' })); audioIn[m.id] = 1; loadProgress(); }
   else if (m.ff === 'done') { if (m.id === activeCut) finishCut(); } });
 function post(id, msg) { try { frames[id].contentWindow.postMessage(msg, '*'); } catch (e) { } }
 function curFoe() { return foe(G ? G.rvN : 0).id; }
 function showBackdrop() { post('x', { ff: 'still', t: .3, rival: curFoe() }); for (const id of CUT_IDS) frames[id] && frames[id].classList.toggle('vis', id === 'x'); placeHero(); }
 function placeHero() { const hs = $('heroStage'), f = frames.x; if (!f) return; if ($('home').classList.contains('on')) { if (f.parentNode !== hs) { hs.appendChild(f); post('x', { ff: 'still', t: .3, rival: curFoe() }); } f.classList.add('vis'); } else if (f.parentNode !== $('stage')) { $('stage').insertBefore(f, $('stage').firstChild); post('x', { ff: 'still', t: .3, rival: curFoe() }); } }
 function playCut(id, pts) { return new Promise(res => { if (FAST || !frames[id]) return res();
-  placeHero(); activeCut = id; cutResolve = res; post(id, { ff: 'play', pts, rival: curFoe() });
-  setTimeout(() => { for (const k of CUT_IDS) frames[k].classList.toggle('vis', k === id); }, 70);
-  if (soundOn && cutSrc[id]) { try { AUDIO.src = cutSrc[id]; AUDIO.currentTime = 0; AUDIO.play().catch(() => { }); } catch (e) { } }
+  placeHero(); activeCut = id; cutResolve = res; const el = soundOn && cutSrc[id] ? (AUDS[id] || cutAudio(id, cutSrc[id])) : null; CUR = el;
+  const go = () => { if (activeCut !== id) return; post(id, { ff: 'play', pts, rival: curFoe() }); setTimeout(() => { for (const k of CUT_IDS) frames[k].classList.toggle('vis', k === id); }, 50);
+    const clock = () => { if (activeCut !== id) return; post(id, { ff: 'clock', t: el ? el.currentTime : 0, paused: !el || el.paused || !soundOn }); requestAnimationFrame(clock); }; requestAnimationFrame(clock); };
+  if (el) { let started = false; const ok = () => { if (started) return; started = true; el.removeEventListener('playing', ok); go(); };
+    try { el.muted = false; el.currentTime = 0; const pr = el.play(); if (pr && pr.catch) pr.catch(() => ok()); } catch (e) { } el.addEventListener('playing', ok); setTimeout(ok, 450); }
+  else go();
   $('skipBtn').classList.add('on'); $('hud').classList.add('hide');
-  const clock = () => { if (activeCut !== id) return; post(id, { ff: 'clock', t: AUDIO.currentTime, paused: AUDIO.paused || !soundOn || !cutSrc[id] }); requestAnimationFrame(clock); }; requestAnimationFrame(clock);
   clearTimeout(cutGuard); cutGuard = setTimeout(() => { if (activeCut === id) finishCut(); }, 30000); }); }
-function finishCut() { const id = activeCut; activeCut = null; clearTimeout(cutGuard); try { AUDIO.pause(); } catch (e) { } $('skipBtn').classList.remove('on'); $('hud').classList.remove('hide'); const r = cutResolve; cutResolve = null;
+function finishCut() { const id = activeCut; activeCut = null; clearTimeout(cutGuard); try { AUDIO.pause(); if (CUR) CUR.pause(); } catch (e) { } $('skipBtn').classList.remove('on'); $('hud').classList.remove('hide'); const r = cutResolve; cutResolve = null;
   setTimeout(() => { if (activeCut) return; showBackdrop(); }, 60); r && r(); }
 $('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); };
 
 /* ================= HOME ================= */
 $('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 $('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
-$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b style="color:${T.col}">${k}</b><span class="nm">${T.name}<small>${ab}</small></span><span class="pt" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b style="color:${T.col}">${k}</b><span class="nm">${T.name}<small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
 $('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
 const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
@@ -435,7 +446,8 @@ function startGame(mode) {
   const r = mode === 'daily' ? rng(DAY * 7919 + 13) : rng((Math.random() * 2 ** 31) | 0);
   G = { mode, prompts: Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
   setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
-  show('play'); drawTrack(); nextRound(true);
+  show('play'); placeHero(); drawTrack(); $('askView').style.display = 'none'; $('reveal').classList.remove('on');
+  (async () => { if (!FAST) { await wait(250); await playCut('i', null); await rivalSay(foe(0)); } if (G.mode === mode && G.round === 0 && !G.over) nextRound(true); })();
 }
 function setHP(instant) { const h = clamp(G.hp / CFG.hp), v = clamp(G.rv / CFG.rivalHP);
   for (const [fill, lag, k] of [['hpFill', 'hpLag', h], ['rvFill', 'rvLag', v]]) { const a = $(fill), b = $(lag); if (instant) { a.style.transition = b.style.transition = 'none'; } a.style.transform = `scaleX(${k})`; b.style.transform = `scaleX(${k})`; if (instant) { a.offsetWidth; a.style.transition = b.style.transition = ''; } }
@@ -481,7 +493,7 @@ async function resolve(ans, why, raw) {
   G.score += pts; G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
   if (pts) { const fl = document.createElement('div'); fl.className = 'float'; fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
   let note = '';
-  if (G.rv <= 0) { G.kos++; G.rvN++; note = 'ko'; await banner('K.O.', `${foe(G.rvN - 1).name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP(); showBackdrop(); }
+  if (G.rv <= 0) { G.kos++; G.rvN++; note = 'ko'; await banner('K.O.', `${foe(G.rvN - 1).name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP(); if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } else showBackdrop(); }
   if (G.hp <= 0) { await banner('DEFEATED', 'Your HP hit zero'); }
   G.round++;
   if (G.round >= CFG.rounds || G.hp <= 0) { $('nextBtn').textContent = 'See results ▸'; } else $('nextBtn').textContent = 'Next prompt ▸';
@@ -489,6 +501,11 @@ async function resolve(ans, why, raw) {
   if (FAST) $('nextBtn').click();
 }
 $('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
+// rival lines: shown in a speech bubble when that rival steps in
+const FOE_LINES = { oni: 'Stand Ready For My Arrival Worm', warden: 'YLLACOFM' };
+let sayTimer = 0, sayTok = 0;
+function rivalSay(f, onlyIf = true) { const line = FOE_LINES[f.id]; if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on'); blip('good');
+  return new Promise(res => { const full = '“' + line + '”'; let i = 0; sayTimer = setInterval(() => { i++; $('sayTxt').textContent = full.slice(0, i); if (i >= full.length) { clearInterval(sayTimer); setTimeout(res, 900); setTimeout(() => { if (tok === sayTok) $('say').classList.remove('on'); }, 2600); } }, 38); }); }
 function banner(b, s) { return new Promise(res => { if (FAST) return res(); $('bannerB').textContent = b; $('bannerS').textContent = s; $('banner').classList.add('on'); setTimeout(() => { $('banner').classList.remove('on'); setTimeout(res, 250); }, 1700); }); }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -559,7 +576,7 @@ addEventListener('resize', () => { if ($('results').classList.contains('on') && 
 
 /* ================= BOOT ================= */
 mountCuts(); placeHero(); loadProgress();
-window.__ff = { PROMPTS, dailySet, pickSet, match, norm, rankOf, RANKS, TIERS, state: () => G };
+window.__ff = { PROMPTS, dailySet, pickSet, rivalSay: (...a) => rivalSay(...a), foe: n => foe(n), playCut: (...a) => playCut(...a), match, norm, rankOf, RANKS, TIERS, state: () => G, audT: () => CUR ? [CUR.currentTime, CUR.paused] : null };
 })();
 </script>
 </body>

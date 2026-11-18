@@ -29,7 +29,7 @@ canvas{display:block;width:100%;height:auto;background:#000}
 </head>
 <body>
 <h1>ROCK</h1><div class="sub">A rank · ability preview</div>
-<div class="nav"><a href="index.html">S · Silver Instinct</a><a href="a.html" class="on">A · Rock</a><a href="b.html">B · Malicious Fate</a><a href="c.html">C · Phantom Rush</a><a href="#d">D · Random (Crescent / Orb)</a><a href="#e">E · Random (Spark / Steam)</a><a href="x.html">✕ · Enemy counter</a></div>
+<div class="nav"><a href="index.html">S · Silver Instinct</a><a href="a.html" class="on">A · Rock</a><a href="a2.html">A · Radiant Cannon</a><a href="b.html">B · Malicious Fate</a><a href="c.html">C · Phantom Rush</a><a href="#d">D · Random (Crescent / Orb)</a><a href="#e">E · Random (Spark / Steam)</a><a href="x.html">✕ · Enemy counter</a><a href="intro.html">Rival entrance</a></div>
 <div class="nav" style="margin-top:-8px" id="rivalNav"><a href="?rival=oni">Rival: Oni Brute</a><a href="?rival=warden">Iron Warden</a><a href="?rival=hollow">The Hollow</a></div><div class="stage"><canvas id="c"></canvas><div class="play" id="ov"><button id="go">Play</button></div></div>
 <div class="row"><button id="replay">Replay</button><button id="slow">Slow-mo</button><button id="snd" class="on">Sound on</button></div>
 <div class="note">Original hero and rival · headphones recommended</div>
@@ -37,7 +37,7 @@ canvas{display:block;width:100%;height:auto;background:#000}
 (() => {
 'use strict';
 const W = 960, H = 540, G = 438;
-const cv = document.getElementById('c'); const DPR = Math.min(2, devicePixelRatio || 1);
+const cv = document.getElementById('c'); const DPR = Math.min(window.EMBED ? 1.5 : 2, devicePixelRatio || 1);
 cv.width = W * DPR; cv.height = H * DPR; const ctx = cv.getContext('2d');
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, prog = (t, a, b) => clamp((t - a) / (b - a));
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647; const rand = (a, b) => a + rnd() * (b - a); const pick = a => a[(rnd() * a.length) | 0];
@@ -174,7 +174,17 @@ function drawHero(g, J, o = {}) {
   const nk = tube([J.sh, J.neck, J.head], [[0, S.neck], [1, S.neck]], s, ex); part(g, nk, S.skin, S.skinS, op, false);
   foot(J.ftF, S.skin); const lF = leg(J.kF, J.ftF, 0); part(g, lF, S.pants, S.pantsS, op); folds(lF);
   // waistband
-  if (!o.flat) { const w = S.torso[0][1] * s / 2 + 1; const dx = J.sh[0] - J.hip[0], dy = J.sh[1] - J.hip[1], d = Math.hypot(dx, dy), nx = -dy / d, ny = dx / d, c = [J.hip[0] + dx / d * 2 * s, J.hip[1] + dy / d * 2 * s]; g.strokeStyle = S.wrap; g.lineWidth = 4 * s; g.lineCap = 'butt'; g.beginPath(); g.moveTo(c[0] + nx * w, c[1] + ny * w); g.lineTo(c[0] - nx * w, c[1] - ny * w); g.stroke(); g.lineCap = 'round'; }
+  if (!o.flat) { // cloth waistband: pants-coloured band with an outline, a fold line and a small tie knot at the front
+    const dx = J.sh[0] - J.hip[0], dy = J.sh[1] - J.hip[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d; let nx = -uy, ny = ux; if (nx * J.f < 0) { nx = -nx; ny = -ny; }
+    const hw = S.torso[0][1] * s / 2 + 1.6 * s, lo = -2.4 * s, hi = 4.2 * s, bow = 1.1 * s, cx = J.hip[0], cy = J.hip[1];
+    const P = (a, b) => [cx + nx * a + ux * b, cy + ny * a + uy * b];
+    const band = () => { const A = P(hw, lo), B = P(hw, hi), C = P(-hw, hi), D = P(-hw, lo), mt = P(0, hi + bow), mb = P(0, lo + bow); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.quadraticCurveTo(mt[0], mt[1], C[0], C[1]); g.lineTo(D[0], D[1]); g.quadraticCurveTo(mb[0], mb[1], A[0], A[1]); g.closePath(); };
+    band(); g.fillStyle = S.pants; g.fill(); g.save(); band(); g.clip(); g.fillStyle = S.pantsS; g.beginPath(); const s0 = P(-hw - 2, lo - 2), s1 = P(hw + 2, lo - 2), s2 = P(hw + 2, (lo + hi) * .5 - .4 * s), s3 = P(-hw - 2, (lo + hi) * .5 - .4 * s); g.moveTo(s0[0], s0[1]); g.lineTo(s1[0], s1[1]); g.lineTo(s2[0], s2[1]); g.lineTo(s3[0], s3[1]); g.closePath(); g.globalAlpha = .55; g.fill(); g.restore();
+    g.strokeStyle = INK; g.lineWidth = ink; g.lineJoin = 'round'; band(); g.stroke();
+    g.strokeStyle = S.fold; g.lineWidth = 1; g.beginPath(); const f0 = P(-hw * .8, (lo + hi) * .5 + .6 * s), f1 = P(hw * .8, (lo + hi) * .5 + .6 * s); g.moveTo(f0[0], f0[1]); g.lineTo(f1[0], f1[1]); g.stroke();
+    const k = P(hw * .42, (lo + hi) * .5 + .3 * s), sw = Math.sin(now * 7) * .8 * s; g.strokeStyle = INK; g.lineWidth = 1.7 * s; g.lineCap = 'round';
+    for (const [a, l] of [[-.5, 6.2], [.45, 5]]) { const e = [k[0] + nx * a * 2.2 * s - ux * l * s + sw * a, k[1] + ny * a * 2.2 * s - uy * l * s]; g.beginPath(); g.moveTo(k[0], k[1]); g.quadraticCurveTo(k[0] + nx * a * 3 * s - ux * l * .5 * s, k[1] + ny * a * 3 * s - uy * l * .5 * s, e[0], e[1]); g.stroke(); }
+    g.fillStyle = S.shirt; g.beginPath(); g.arc(k[0], k[1], 1.9 * s, 0, 7); g.fill(); g.lineWidth = 1.2; g.stroke(); }
   headShape(g, J, S.head[0], S.head[1], S.skin, S.skinS, { flat: o.flat, ink, ex });
   const aF = arm(J.sh, J.eF, J.hF); part(g, aF, o.armCol || S.shirt, o.armColS || S.shirtS, op); hand(J.hF, S.skin); if (o.armFx && !o.flat) o.armFx(aF);
   if (false && o.eye) { const ex2 = J.head[0] + 3.6 * s * J.f, ey = J.head[1] - 1.4 * s; g.strokeStyle = o.eye; g.lineWidth = 2 * s * .8; g.beginPath(); g.moveTo(ex2 - 2.4 * s * J.f, ey + .7 * s); g.lineTo(ex2 + 4.4 * s * J.f, ey - .3 * s); g.stroke(); }
@@ -546,9 +556,9 @@ const HX = 270, RX = 650, RS = 2.05, HS = 1.3, BIG = 2.05;
 const T = { dark: .25, trans: .7, grown: 2.3, calm: 2.35, eyes: 2.75, fear: 2.95, charge: 3.25, c2: 3.85, c3: 4.55, c4: 4.8, c5: 5.05, full: 5.9, hush: 5.95, go: 6.12, hit: 6.18 };
 T.blank = T.hit + .07; T.unblank = T.hit + .5; T.fly = T.unblank - .02; T.settle = T.fly + .85; T.revert = T.fly + 1.75; T.reverted = T.revert + .5; T.rrise = T.reverted + .55; T.glyph = T.rrise + 1.0; T.end = T.glyph + 1.9;
 const BEATS = [.05, 1.0, 1.55, 1.95, 2.2, 3.4, 3.95, 4.4, 4.75, 5.0, 5.2, 5.38, 5.52, 5.64, 5.74, 5.82];
-function speedAt0(t) { if (t > T.hit - .003 && t < T.blank) return .1; if (t >= T.blank && t < T.unblank) return .3; if (t >= T.unblank && t < T.fly + .9) return .36; return 1; }
-const BASE = .74;
-function stretchAt(t) { if (t > T.trans && t < T.grown) return .85; if (t > T.charge && t < T.hush) return .82; if (t > T.unblank && t < T.settle + .3) return .85; return 1; }
+function speedAt0(t) { if (t > T.hit - .003 && t < T.blank) return .16; if (t >= T.blank && t < T.unblank) return .45; if (t >= T.unblank && t < T.fly + .9) return .62; return 1; }
+const BASE = 1.0;
+function stretchAt(t) { if (t > T.trans && t < T.grown) return 1.15; if (t > T.charge && t < T.hush) return 1.1; return 1; }
 function speedAt(t) { return speedAt0(t) * BASE * stretchAt(t); }
 const AP = {
   bowed:  { lean: .05, head: .5, aF: .08, fF: .1, aB: -.06, fB: -.02, lF: .14, sF: .02, lB: -.12, sB: -.05 },
@@ -805,18 +815,19 @@ function renderSoundtrack(secs = 26) { return new Promise((resolve, reject) => {
   const p = off.startRendering(); if (p && p.then) p.then(fin, reject); else off.oncomplete = e => fin(e.renderedBuffer);
 } catch (e) { reject(e); } }); }
 const AUD = window.__aud = window.EMBED ? { currentTime: 0, paused: true, muted: false, playbackRate: 1, src: '', play() { return Promise.resolve(); }, pause() { this.paused = true; }, load() { } } : new Audio(); if (!window.EMBED) { AUD.preload = 'auto'; AUD.setAttribute('playsinline', ''); } let audReady = false, realT = 0;
-renderSoundtrack().then(async blob => { if (window.EMBED) { const buf = await blob.arrayBuffer(); audReady = true; parent.postMessage({ ff: 'audio', id: new URLSearchParams(location.search).get('id'), buf }, '*', [buf]); return; } AUD.src = URL.createObjectURL(blob); AUD.load(); audReady = true; sndLabel(); if (playing && soundOn) { try { AUD.currentTime = realT; } catch (e) { } AUD.play().catch(() => { }); } }).catch(e => { console.warn('soundtrack', e); if (window.EMBED) parent.postMessage({ ff: 'audio', id: new URLSearchParams(location.search).get('id'), buf: null }, '*'); });
+if (window.EMBED) { audReady = true; const __id = new URLSearchParams(location.search).get('id'); parent.postMessage({ ff: 'audio', id: __id, url: new URL('snd/' + __id + '.mp3', location.href).href }, '*'); } else renderSoundtrack().then(blob => { AUD.src = URL.createObjectURL(blob); AUD.load(); audReady = true; sndLabel(); if (playing && soundOn) { try { AUD.currentTime = realT; } catch (e) { } AUD.play().catch(() => { }); } }).catch(e => { console.warn('soundtrack', e); });
 window.__realLen = () => { let tt = 0, real = 0; while (tt < T.end + 1) { const d = 1 / 240; real += d; tt += d * speedAt(tt); } return real; };
 window.__renderAudio = async () => { const blob = await renderSoundtrack(); const u8 = new Uint8Array(await blob.arrayBuffer()).subarray(44); let bin = ''; for (let i = 0; i < u8.length; i += 32768) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(bin); };
 window.__dbg = time => { const h = heroAt(time), r = rivalAt(time); const hJ = solve(h.p, h.x, lerp(HS, BIG, growK(time)), 1, h.air), rJ = solve(r.p, r.x, RS, -1); const R = v => v.map(n => Math.round(n)); return { hHead: R(hJ.head), hHip: R(hJ.hip), hFeet: [R(hJ.ftF), R(hJ.ftB)], rHand: R(rJ.hF), rHandB: R(rJ.hB), rFoot: R(rJ.ftF), rHip: R(rJ.hip), rHead: R(rJ.head) }; };
 const start = () => { reset(); playing = true; realT = 0; AUD.muted = !soundOn; AUD.playbackRate = speedMul; try { AUD.preservesPitch = AUD.webkitPreservesPitch = false; } catch (e) { } if (audReady) { try { AUD.currentTime = 0; } catch (e) { } AUD.play().catch(() => { }); } else if (soundOn) { AUD.play().catch(() => { }); } const ov = document.getElementById('ov'); ov.style.opacity = 0; setTimeout(() => ov.style.display = 'none', 400); };
 
-if (window.EMBED) { const ID = new URLSearchParams(location.search).get('id'); window.__freeze = true; let watch = 0, live = false;
+if (window.EMBED) { const ID = new URLSearchParams(location.search).get('id'); window.__freeze = true; let watch = 0, live = false; window.__realT = () => realT;
   const done = () => { clearInterval(watch); if (!live) return; live = false; AUD.paused = true; window.__freeze = true; parent.postMessage({ ff: 'done', id: ID }, '*'); };
   addEventListener('message', e => { const m = e.data || {}; if (!m.ff) return;
     if (m.rival && window.__setRival) window.__setRival(m.rival);
     if (m.ff === 'play') { window.__pts = m.pts; AUD.currentTime = 0; AUD.paused = true; window.__freeze = false; live = true; start(); clearInterval(watch); watch = setInterval(() => { if (!playing) done(); }, 100); }
-    else if (m.ff === 'clock') { AUD.currentTime = m.t; AUD.paused = !!m.paused; }
+    else if (m.ff === 'clock') { AUD.currentTime = m.t; AUD.paused = !!m.paused; if (!m.paused && playing && realT - m.t > .2 && performance.now() - (window.__lastSeek || 0) > 600) { window.__lastSeek = performance.now(); parent.postMessage({ ff: 'seek', id: ID, t: realT }, '*'); } }
+    else if (m.ff === 'warm') { if (!live && window.__at) { const was = window.__freeze; window.__freeze = true; try { window.__at(1.2); window.__at(0); } catch (e) { } window.__freeze = was; } }
     else if (m.ff === 'stop') { playing = false; done(); }
     else if (m.ff === 'still') { live = false; clearInterval(watch); window.__pts = null; window.__freeze = true; if (window.__at) window.__at(m.t || 0); } });
   parent.postMessage({ ff: 'ready', id: ID }, '*'); }
