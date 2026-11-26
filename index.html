@@ -504,8 +504,8 @@ async function resolve(ans, why, raw) {
 $('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
 // rival lines: shown in a speech bubble when that rival steps in
 const FOE_LINES = {
-  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.'],
-  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form."],
+  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.', 'Oh… it\'s you.', 'You lack hatred.', 'War. War never changes.', 'Kept you waiting, huh?'],
+  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form.", 'Is this all you\'ve got?', 'Hey, you. You\'re finally awake.', 'Know your place, fool.'],
   hollow: ['YLLACOFM'] };
 let lastLine = {};
 function pickLine(id) { const L = FOE_LINES[id]; if (!L || !L.length) return null; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastLine[id]) i = (i + 1) % L.length; lastLine[id] = i; return L[i]; }
