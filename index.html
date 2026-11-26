@@ -452,7 +452,7 @@ function sndLabel() { $('sndBtn').textContent = soundOn ? 'Sound on' : 'Sound of
 $('sndBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('ff_sound', soundOn ? 'on' : 'off'); if (!soundOn) { AUDIO.pause(); if (CUR) CUR.pause(); } sndLabel(); }; sndLabel();
 
 /* ================= CUTSCENES (embedded, preloaded) ================= */
-const CUT_IDS = ['x', 'i', 's', 'a', 'a2', 'b', 'c', 'd', 'd2', 'e', 'e2'];
+const CUT_IDS = ['x', 'i', 'k', 's', 'a', 'a2', 'b', 'c', 'd', 'd2', 'e', 'e2'];
 const frames = {}, cutSrc = {}, ready = {}, audioIn = {};
 let activeCut = null, cutResolve = null, cutGuard = 0, CUR = null;
 function loadProgress() { const n = CUT_IDS.filter(i => audioIn[i]).length, r = CUT_IDS.filter(i => ready[i]).length; $('loadBar').style.width = Math.round((n + r) / (CUT_IDS.length * 2) * 100) + '%';
@@ -464,15 +464,17 @@ function mountCuts() { const st = $('stage');
 addEventListener('message', e => { const m = e.data; if (!m || !m.ff) return;
   if (m.ff === 'ready') { ready[m.id] = 1; if (m.id !== 'x') setTimeout(() => { if (!activeCut || activeCut !== m.id) post(m.id, { ff: 'warm' }); }, 1500 + CUT_IDS.indexOf(m.id) * 350); if (m.id === 'x') { if (activeCut) post('x', { ff: 'still', t: .3, rival: curFoe() }); else showBackdrop(); } loadProgress(); }
   else if (m.ff === 'seek') { const el = AUDS[m.id]; if (el && m.id === activeCut && !el.paused) { try { el.currentTime = m.t; } catch (e) { } } }
-  else if (m.ff === 'audio') { if (m.url) { cutSrc[m.id] = m.url; cutAudio(m.id, m.url); } else if (m.buf) cutSrc[m.id] = URL.createObjectURL(new Blob([m.buf], { type: 'audio/wav' })); audioIn[m.id] = 1; loadProgress(); }
+  else if (m.ff === 'audio') { if (m.url && m.id === 'k') { cutSrc.k = m.url; for (const r of ['oni', 'warden', 'hollow']) cutAudio('k_' + r, m.url.replace(/k\.mp3$/, `k_${r}.mp3`)); }
+    else if (m.url) { cutSrc[m.id] = m.url; cutAudio(m.id, m.url); } else if (m.buf) cutSrc[m.id] = URL.createObjectURL(new Blob([m.buf], { type: 'audio/wav' })); audioIn[m.id] = 1; loadProgress(); }
   else if (m.ff === 'done') { if (m.id === activeCut) finishCut(); } });
 function post(id, msg) { try { frames[id].contentWindow.postMessage(msg, '*'); } catch (e) { } }
 function curFoe() { return foe(G ? G.rvN : 0).id; }
-function showBackdrop() { post('x', { ff: 'still', t: .3, rival: curFoe() }); for (const id of CUT_IDS) frames[id] && frames[id].classList.toggle('vis', id === 'x'); placeHero(); }
+function showBackdrop() { post('x', { ff: 'still', t: .3, rival: G && G.emptyStage ? 'none' : curFoe() }); for (const id of CUT_IDS) frames[id] && frames[id].classList.toggle('vis', id === 'x'); placeHero(); }
 function placeHero() { const hs = $('heroStage'), f = frames.x; if (!f) return; if ($('home').classList.contains('on')) { if (f.parentNode !== hs) { hs.appendChild(f); post('x', { ff: 'still', t: .3, rival: curFoe() }); } f.classList.add('vis'); } else if (f.parentNode !== $('stage')) { $('stage').insertBefore(f, $('stage').firstChild); post('x', { ff: 'still', t: .3, rival: curFoe() }); } }
-function playCut(id, pts) { return new Promise(res => { if (FAST || !frames[id]) return res();
-  placeHero(); activeCut = id; cutResolve = res; const el = soundOn && cutSrc[id] ? (AUDS[id] || cutAudio(id, cutSrc[id])) : null; CUR = el;
-  const go = () => { if (activeCut !== id) return; post(id, { ff: 'play', pts, rival: curFoe() }); setTimeout(() => { for (const k of CUT_IDS) frames[k].classList.toggle('vis', k === id); }, 50);
+function playCut(id, pts, rival) { return new Promise(res => { if (FAST || !frames[id]) return res();
+  const rv = rival || curFoe(), ak = id === 'k' ? 'k_' + rv : id;
+  placeHero(); activeCut = id; cutResolve = res; const el = soundOn && cutSrc[id] ? (AUDS[ak] || cutAudio(ak, cutSrc[id].replace(/k\.mp3$/, `k_${rv}.mp3`))) : null; CUR = el;
+  const go = () => { if (activeCut !== id) return; post(id, { ff: 'play', pts, rival: rv }); setTimeout(() => { for (const k of CUT_IDS) frames[k].classList.toggle('vis', k === id); }, 50);
     const clock = () => { if (activeCut !== id) return; post(id, { ff: 'clock', t: el ? el.currentTime : 0, paused: !el || el.paused || !soundOn }); requestAnimationFrame(clock); }; requestAnimationFrame(clock); };
   if (el) { let started = false; const ok = () => { if (started) return; started = true; el.removeEventListener('playing', ok); go(); };
     try { el.muted = false; el.currentTime = 0; const pr = el.play(); if (pr && pr.catch) pr.catch(() => ok()); } catch (e) { } el.addEventListener('playing', ok); setTimeout(ok, 450); }
@@ -602,7 +604,13 @@ async function resolve(ans, why, raw) {
   G.score += pts; G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
   if (pts) { const fl = document.createElement('div'); fl.className = 'float' + MYT(tier); fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
   let note = '';
-  if (G.rv <= 0) { G.kos++; G.rvN++; note = 'ko'; await banner('K.O.', `${foe(G.rvN - 1).name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP(); if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } else showBackdrop(); }
+  if (G.rv <= 0) { G.kos++; note = 'ko'; const dead = foe(G.rvN);
+    // the beaten rival dies on screen (Mythic's own scene already blasts him away), the stage stays empty through the
+    // K.O. banner, and the next rival only appears by leaping in
+    G.emptyStage = tier === 'S'; if (tier !== 'S') await playCut('k', null, dead.id);
+    G.emptyStage = true; G.rvN++; showBackdrop();
+    await banner('K.O.', `${dead.name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP();
+    G.emptyStage = false; if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } else showBackdrop(); }
   if (G.hp <= 0) { await banner('DEFEATED', 'Your HP hit zero'); }
   G.round++;
   if (G.round >= CFG.rounds || G.hp <= 0) { $('nextBtn').textContent = 'See results ▸'; } else $('nextBtn').textContent = 'Next prompt ▸';

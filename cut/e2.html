@@ -419,10 +419,10 @@ function drawBrawler(g, J) { const S = BRW, s = J.s, f = J.f, ink = 2.5;
 /* ---------- which rival is on screen: ?rival=oni|warden|hollow (default oni); 'red' = the old design ---------- */
 const RIVALS = { oni: drawOni, warden: drawWarden, hollow: drawHollow, brawler: drawBrawler };
 let RIVAL_KIND = new URLSearchParams(location.search).get('rival') || 'oni';
-window.__setRival = k => { if (RIVALS[k] || k === 'red') RIVAL_KIND = k; };
+window.__setRival = k => { if (RIVALS[k] || k === 'red' || k === 'none') RIVAL_KIND = k; };
 let _rvOff = null;
 function drawRivalKind(g, J, o = {}) {
-  const fn = RIVALS[RIVAL_KIND]; if (!fn) return drawRivalOld(g, J, o);
+  if (RIVAL_KIND === 'none') return; const fn = RIVALS[RIVAL_KIND]; if (!fn) return drawRivalOld(g, J, o);
   if (!o.flat && !o.lit) { g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; fn(g, J); g.restore(); return; }
   // silhouettes and flashes: render once offscreen, then tint
   const cv = g.canvas, T0 = g.getTransform(); if (!_rvOff || _rvOff.width !== cv.width || _rvOff.height !== cv.height) { _rvOff = document.createElement('canvas'); _rvOff.width = cv.width; _rvOff.height = cv.height; }
@@ -665,7 +665,7 @@ function render(sdt) {
     const [ix, iy] = hJ.hF; ctx.strokeStyle = '#0b0b0d'; ctx.lineWidth = 2.2; const sv0 = seed; ctx.beginPath(); seed = 99; for (let i = 0; i < 70; i++) { const a = rand(0, 6.28), r0 = rand(40, 90), r1 = r0 + rand(180, 760); ctx.moveTo(ix + Math.cos(a) * r0, iy + Math.sin(a) * r0); ctx.lineTo(ix + Math.cos(a) * r1, iy + Math.sin(a) * r1); } ctx.stroke(); seed = sv0; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); return; }
   ctx.drawImage(bg, -80, -80, W + 160, H + 160);
   ctx.save(); ctx.beginPath(); ctx.rect(-80, G, W + 160, 220); ctx.clip(); ctx.translate(0, G * 2); ctx.scale(1, -1); ctx.globalAlpha = .22; drawRival(ctx, rJ, { ink: 0 }); if (!hs.hidden) drawHero(ctx, hJ, { ink: 0 }); ctx.restore();
-  for (const [x, w, a] of [[hJ.hip[0], 34, .5], [rJ.hip[0], 64, .55]]) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, G + 2, w, w * .1, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  for (const [x, w, a] of [[hJ.hip[0], 34, .5], [rJ.hip[0], 64, RIVAL_KIND === 'none' ? 0 : .55]]) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, G + 2, w, w * .1, 0, 0, 7); ctx.fill(); ctx.restore(); }
   if (st.hit) { ctx.save(); ctx.strokeStyle = 'rgba(25,26,29,.5)'; ctx.lineWidth = 3; ctx.lineCap = 'round'; for (const dy of [3, 8]) { ctx.beginPath(); ctx.moveTo(RX + 10, G + dy); ctx.lineTo(Math.max(RX + 10, rJ.ftB[0]), G + dy); ctx.stroke(); } ctx.restore(); if (t < T.hit + .8 && rnd() < .9) spawn(2, () => ({ x: rJ.ftB[0] + rand(-10, 10), y: G - 3, vx: rand(-120, 20), vy: rand(-90, -20), g: 120, drag: 2, life: rand(.4, .9), s: rand(2, 4.5), c: 'rgba(170,173,178,.6)' })); }
   ctx.save(); ctx.lineCap = 'round'; for (const s2 of streaks) { const k = 1 - s2.life / s2.max; ctx.strokeStyle = `rgba(255,220,228,${.7 * (1 - k)})`; ctx.lineWidth = 1.6; const x0 = s2.x + s2.dir * k * 50; ctx.beginPath(); ctx.moveTo(x0, s2.y); ctx.lineTo(x0 + s2.dir * s2.len, s2.y); ctx.stroke(); } ctx.restore();
   // steam (behind the bodies)
@@ -744,7 +744,7 @@ if (window.EMBED) { const ID = new URLSearchParams(location.search).get('id'); w
   const done = () => { clearInterval(watch); if (!live) return; live = false; AUD.paused = true; window.__freeze = true; parent.postMessage({ ff: 'done', id: ID }, '*'); };
   addEventListener('message', e => { const m = e.data || {}; if (!m.ff) return;
     if (m.rival && window.__setRival) window.__setRival(m.rival);
-    if (m.ff === 'play') { window.__pts = m.pts; AUD.currentTime = 0; AUD.paused = true; window.__freeze = false; live = true; start(); clearInterval(watch); watch = setInterval(() => { if (!playing) done(); }, 100); }
+    if (m.ff === 'play') { window.__pts = m.pts; AUD.currentTime = 0; AUD.paused = true; if (window.__at) { try { window.__at(0); } catch (e) { } } window.__freeze = false; live = true; start(); clearInterval(watch); watch = setInterval(() => { if (!playing) done(); }, 100); }
     else if (m.ff === 'clock') { AUD.currentTime = m.t; AUD.paused = !!m.paused; if (!m.paused && playing && realT - m.t > .2 && performance.now() - (window.__lastSeek || 0) > 600) { window.__lastSeek = performance.now(); parent.postMessage({ ff: 'seek', id: ID, t: realT }, '*'); } }
     else if (m.ff === 'warm') { if (!live && window.__at) { const was = window.__freeze; window.__freeze = true; try { window.__at(1.2); window.__at(0); } catch (e) { } window.__freeze = was; } }
     else if (m.ff === 'stop') { playing = false; done(); }

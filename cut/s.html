@@ -421,10 +421,10 @@ function drawBrawler(g, J) { const S = BRW, s = J.s, f = J.f, ink = 2.5;
 /* ---------- which rival is on screen: ?rival=oni|warden|hollow (default oni); 'red' = the old design ---------- */
 const RIVALS = { oni: drawOni, warden: drawWarden, hollow: drawHollow, brawler: drawBrawler };
 let RIVAL_KIND = new URLSearchParams(location.search).get('rival') || 'oni';
-window.__setRival = k => { if (RIVALS[k] || k === 'red') RIVAL_KIND = k; };
+window.__setRival = k => { if (RIVALS[k] || k === 'red' || k === 'none') RIVAL_KIND = k; };
 let _rvOff = null;
 function drawRivalKind(g, J, o = {}) {
-  const fn = RIVALS[RIVAL_KIND]; if (!fn) return drawRivalOld(g, J, o);
+  if (RIVAL_KIND === 'none') return; const fn = RIVALS[RIVAL_KIND]; if (!fn) return drawRivalOld(g, J, o);
   if (!o.flat && !o.lit) { g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; fn(g, J); g.restore(); return; }
   // silhouettes and flashes: render once offscreen, then tint
   const cv = g.canvas, T0 = g.getTransform(); if (!_rvOff || _rvOff.width !== cv.width || _rvOff.height !== cv.height) { _rvOff = document.createElement('canvas'); _rvOff.width = cv.width; _rvOff.height = cv.height; }
@@ -885,7 +885,7 @@ if (window.EMBED) { const ID = new URLSearchParams(location.search).get('id'); w
   const done = () => { clearInterval(watch); if (!live) return; live = false; AUD.paused = true; window.__freeze = true; parent.postMessage({ ff: 'done', id: ID }, '*'); };
   addEventListener('message', e => { const m = e.data || {}; if (!m.ff) return;
     if (m.rival && window.__setRival) window.__setRival(m.rival);
-    if (m.ff === 'play') { window.__pts = m.pts; AUD.currentTime = 0; AUD.paused = true; window.__freeze = false; live = true; start(); clearInterval(watch); watch = setInterval(() => { if (!playing) done(); }, 100); }
+    if (m.ff === 'play') { window.__pts = m.pts; AUD.currentTime = 0; AUD.paused = true; if (window.__at) { try { window.__at(0); } catch (e) { } } window.__freeze = false; live = true; start(); clearInterval(watch); watch = setInterval(() => { if (!playing) done(); }, 100); }
     else if (m.ff === 'clock') { AUD.currentTime = m.t; AUD.paused = !!m.paused; if (!m.paused && playing && realT - m.t > .2 && performance.now() - (window.__lastSeek || 0) > 600) { window.__lastSeek = performance.now(); parent.postMessage({ ff: 'seek', id: ID, t: realT }, '*'); } }
     else if (m.ff === 'warm') { if (!live && window.__at) { const was = window.__freeze; window.__freeze = true; try { window.__at(1.2); window.__at(0); } catch (e) { } window.__freeze = was; } }
     else if (m.ff === 'stop') { playing = false; done(); }
