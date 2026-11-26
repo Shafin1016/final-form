@@ -100,7 +100,7 @@ button{font-family:inherit;cursor:pointer}
 .shake{animation:shake .4s}
 @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 .under{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;min-height:20px}
-.fb{font-size:12px;color:var(--muted)}.fb.bad{color:#ff8a7a}
+.fb{font-size:12px;color:var(--muted)}.fb.bad{color:#ff8a7a}.fb.chk{color:#e9e7e1}.fb.chk::before{content:'';display:inline-block;width:9px;height:9px;margin-right:7px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}.ansrow.chk{opacity:.6;pointer-events:none}
 .claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
 .misses{margin-top:6px;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.misses s{color:#ff8a7a;text-decoration:none}
 .rep{width:100%;height:220px;background:#0b0c0f;color:#d8d6cf;border:1px solid var(--line2);border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
@@ -261,6 +261,8 @@ button{font-family:inherit;cursor:pointer}
 <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end"><button class="btn ghost" id="repClose">Close</button><button class="btn main" id="repCopy">Copy report</button></div></div></div>
 <div class="toast" id="toast"></div>
 
+<script src="ff-core.js"></script>
+<script src="ff-config.js"></script>
 <script src="prompts.js"></script>
 <script src="prompts2.js"></script>
 <script src="prompts3.js"></script>
@@ -294,28 +296,8 @@ const Q = new URLSearchParams(location.search), FAST = Q.has('fast');
 const $ = id => document.getElementById(id);
 
 /* ================= PROMPTS + MATCHING ================= */
-const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/♀/g, ' f').replace(/♂/g, ' m').replace(/&/g, ' and ').replace(/^\s*the\s+/, '').replace(/[^a-z0-9]/g, '');
-const PROMPTS = window.FF_PROMPTS.map(p => {
-  const answers = []; const keys = new Map();
-  for (const line of p.a.trim().split('\n')) { const tier = line.trim()[0], parts = line.trim().slice(1).split('|').map(x => x.trim()).filter(Boolean); if (!TIERS[tier] || !parts.length) continue;
-    const ans = { tier, name: parts[0], key: norm(parts[0]) }; answers.push(ans);
-    for (const al of parts) { const k = norm(al); if (k && !keys.has(k)) keys.set(k, ans); } }
-  return Object.assign({}, p, { answers, keys });
-});
-function osa(a, b, max) { const la = a.length, lb = b.length; if (Math.abs(la - lb) > max) return max + 1; let prev2 = null, prev = Array.from({ length: lb + 1 }, (_, j) => j);
-  for (let i = 1; i <= la; i++) { const cur = [i]; let best = i; for (let j = 1; j <= lb; j++) { const c = a[i - 1] === b[j - 1] ? 0 : 1; let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c); if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1); cur.push(v); if (v < best) best = v; } if (best > max) return max + 1; prev2 = prev; prev = cur; } return prev[lb]; }
-function match(p, raw) { const k = norm(raw); if (!k) return { none: true };
-  if (p.keys.has(k)) return { ans: p.keys.get(k) };
-  let best = 9, hits = new Set(); for (const [key, ans] of p.keys) { if (key.length < 5) continue; const tol = key.length <= 7 ? 1 : 2, d = osa(k, key, tol); if (d <= tol) { if (d < best) { best = d; hits = new Set([ans]); } else if (d === best) hits.add(ans); } }
-  if (hits.size === 1) return { ans: [...hits][0], fuzzy: true }; if (hits.size > 1) return { ambiguous: true };
-  // contained match: a known answer inside a longer phrase ("geralt of rivia", "tomb raider 2013", "kirby anime"), longest answer wins
-  const toks = (raw || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' and ').split(/[^a-z0-9]+/).filter(Boolean), spans = new Set();
-  for (let i = 0; i < toks.length; i++) { let acc = ''; for (let j = i; j < toks.length; j++) { acc += toks[j]; spans.add(acc); } }
-  let bl = 0, cands = new Set(); for (const [key, ans] of p.keys) { if (key.length < 4 || key.length < k.length * 0.25 || !spans.has(key)) continue; if (key.length > bl) { bl = key.length; cands = new Set([ans]); } else if (key.length === bl) cands.add(ans); }
-  if (cands.size === 1) return { ans: [...cands][0], fuzzy: true }; if (cands.size > 1) return { ambiguous: true };
-  // short form of a longer answer ("castlevania" → Symphony of the Night): only when exactly one answer starts with it
-  if (k.length >= 6) { const pre = new Set(); for (const [key, ans] of p.keys) if (key.startsWith(k) && k.length >= key.length * 0.5) pre.add(ans); if (pre.size === 1) return { ans: [...pre][0], fuzzy: true }; if (pre.size > 1) return { ambiguous: true }; }
-  return { none: true }; }
+const { norm, osa, match, capTier } = window.FFCore;
+const PROMPTS = window.FF_PROMPTS.map(p => Object.assign({}, p, window.FFCore.parseAnswers(p.a, TIERS)));
 
 /* ================= DAILY SELECTION ================= */
 const EPOCH = new Date(2026, 10, 17); const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -340,11 +322,18 @@ const BIN = 25, NBINS = 28, SHARDS = 8;
 const emptyStats = () => ({ n: 0, bins: new Array(NBINS).fill(0), pn: {}, ans: {} });
 function addRun(st, run) { st.n++; st.bins[Math.min(NBINS - 1, Math.floor(run.score / BIN))]++; for (const a of run.ans || []) { if (!a || !a.p) continue; st.pn[a.p] = (st.pn[a.p] || 0) + 1; if (a.a) { const m = st.ans[a.p] = st.ans[a.p] || {}; m[a.a] = (m[a.a] || 0) + 1; } } return st; }
 function mergeStats(list) { const out = emptyStats(); for (const s of list) { if (!s || typeof s.n !== 'number') continue; out.n += s.n; (s.bins || []).forEach((v, i) => { if (i < NBINS) out.bins[i] += v || 0; }); for (const p in s.pn || {}) out.pn[p] = (out.pn[p] || 0) + s.pn[p]; for (const p in s.ans || {}) { const m = out.ans[p] = out.ans[p] || {}; for (const k in s.ans[p]) m[k] = (m[k] || 0) + s.ans[p][k]; } } return out; }
+const CONF = window.FF_CONFIG || {}, API = CONF.api ? String(CONF.api).replace(/\/$/, '') : '';
+const PLAYER = (() => { try { let id = localStorage.getItem('ff_player'); if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); localStorage.setItem('ff_player', id); } return id; } catch (e) { return 'anon-' + Math.random().toString(36).slice(2); } })();
+// backend call with a hard timeout; any failure comes back as an exception
+async function api(path, body, ms = 8000) { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(API + path, body === undefined ? { signal: ctl.signal } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal });
+    const j = await r.json().catch(() => ({})); if (!r.ok && !j.status) throw new Error('http ' + r.status); return j; } finally { clearTimeout(t); } }
 const Store = { db: null, uid: null, ready: false,
-  async init() { try { if (window.claude && claude.use) { const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); this.db = db; if (user) { try { this.uid = await user.id(); } catch (e) { } } } } catch (e) { } this.ready = true; },
+  async init() { if (API) { this.ready = true; return; } try { if (window.claude && claude.use) { const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); this.db = db; if (user) { try { this.uid = await user.id(); } catch (e) { } } } } catch (e) { } this.ready = true; },
   local() { try { return JSON.parse(localStorage.getItem('ff_runs') || '[]'); } catch (e) { return []; } },
   // each finished game: append to the player's own history, then bump one summary shard (leased so concurrent games don't overwrite each other)
   async save(run) { try { const L = this.local(); L.push(run); localStorage.setItem('ff_runs', JSON.stringify(L.slice(-300))); } catch (e) { }
+    if (API) { try { const r = await api('/run', { player: PLAYER, run }); return r && r.ok ? 'shared' : 'local'; } catch (e) { console.warn('save', e); return 'local'; } }
     if (!(this.db && this.uid)) return 'local';
     try { const ref = this.db.doc('plays/' + this.uid); const snap = await ref.get(); const runs = (snap.exists && Array.isArray(snap.data().runs)) ? snap.data().runs.slice() : []; runs.push(run); await ref.set({ runs: runs.slice(-200), updated: Date.now() }); } catch (e) { console.warn('save', e); return 'local'; }
     const k = Math.floor(Math.random() * SHARDS), sref = this.db.doc('stats/s' + k);
@@ -352,12 +341,16 @@ const Store = { db: null, uid: null, ready: false,
       await new Promise(r => setTimeout(r, 250 + Math.random() * 600 * (tries + 1))); }
     return 'shared'; },
   async patch(run) { try { const L = this.local(), i = L.findIndex(r => r.ts === run.ts); if (i >= 0) { L[i] = run; localStorage.setItem('ff_runs', JSON.stringify(L)); } } catch (e) { }
-    if (!(this.db && this.uid)) return; try { const ref = this.db.doc('plays/' + this.uid), snap = await ref.get(); if (!snap.exists) return; const runs = (snap.data().runs || []).slice(), i = runs.findIndex(r => r.ts === run.ts); if (i < 0) return; runs[i] = run; await ref.set({ runs, updated: Date.now() }); } catch (e) { console.warn('patch', e); } },
+    if (API || !(this.db && this.uid)) return; try { const ref = this.db.doc('plays/' + this.uid), snap = await ref.get(); if (!snap.exists) return; const runs = (snap.data().runs || []).slice(), i = runs.findIndex(r => r.ts === run.ts); if (i < 0) return; runs[i] = run; await ref.set({ runs, updated: Date.now() }); } catch (e) { console.warn('patch', e); } },
   // the leaderboard reads only the small summary shards, however many people have played
-  async stats() { if (this.db) { try { const snap = await Promise.race([this.db.collection('stats').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]); const st = mergeStats(snap.docs.map(d => d.data())); if (st.n) return { stats: st, shared: true }; } catch (e) { console.warn('stats load', e); } }
+  async stats() { if (API) { try { const r = await api('/stats', undefined, 8000); if (r && r.stats && typeof r.stats.n === 'number') return { stats: r.stats, shared: true }; } catch (e) { console.warn('stats load', e); } }
+    if (this.db) { try { const snap = await Promise.race([this.db.collection('stats').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]); const st = mergeStats(snap.docs.map(d => d.data())); if (st.n) return { stats: st, shared: true }; } catch (e) { console.warn('stats load', e); } }
     return { stats: this.local().reduce((s, r) => addRun(s, r), emptyStats()), shared: false }; },
 };
 Store.init().then(refreshLive);
+// answers other players already got validated (AI-checked or reviewed) for these prompts: matched locally, instantly
+async function loadExtras(prompts) { if (!API || CONF.aiCheck === false) return; try { const r = await api('/answers?p=' + prompts.map(p => encodeURIComponent(p.id)).join(','), undefined, 6000);
+  for (const p of prompts) if (r && r.answers && r.answers[p.id]) window.FFCore.addExtra(p, r.answers[p.id]); } catch (e) { console.warn('answers', e); } }
 
 /* ================= RARITY FROM REAL ANSWERS ================= */
 // One shared pool: real runs + a starter pool of 1,000 simulated players (seed.js).
@@ -376,7 +369,10 @@ function blend(live) { live = live || emptyStats(); const out = emptyStats(), gf
 let EFF = blend(null);
 async function refreshLive() { try { const r = await Store.stats(); EFF = blend(r && r.stats); } catch (e) { } }
 function shareOf(pid, key) { const pn = EFF.pn[pid] || 0; return pn ? ((EFF.ans[pid] || {})[key] || 0) / pn : null; }
-function dynTier(p, ans) { const pn = EFF.pn[p.id] || 0; if (pn < MIN_SAMPLE) return ans.tier; const sh = shareOf(p.id, ans.key); for (const [t, c] of CUTS) if (sh < c) return t; return 'E'; }
+function dynTier(p, ans) { const pn = EFF.pn[p.id] || 0; let t = ans.tier || window.FFCore.UNREVIEWED_CAP;
+  if (pn >= MIN_SAMPLE) { const sh = shareOf(p.id, ans.key); t = 'E'; for (const [k, c] of CUTS) if (sh < c) { t = k; break; } }
+  // answers no person has reviewed yet (AI-validated) never score above the cap, so "nobody has said it yet" can't mean Mythic
+  return capTier(ans, t); }
 
 /* ================= AUDIO (one unlocked element plays every cutscene) ================= */
 const AUDIO = new Audio(); AUDIO.preload = 'auto'; AUDIO.setAttribute('playsinline', '');
@@ -446,6 +442,7 @@ function startGame(mode) {
   refreshLive();
   const r = mode === 'daily' ? rng(DAY * 7919 + 13) : rng((Math.random() * 2 ** 31) | 0);
   G = { mode, prompts: Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
+  loadExtras(G.prompts);
   setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
   show('play'); placeHero(); drawTrack(); $('askView').style.display = 'none'; $('reveal').classList.remove('on');
   (async () => { if (!FAST) { await wait(250); await playCut('i', null); await rivalSay(foe(0)); } if (G.mode === mode && G.round === 0 && !G.over) nextRound(true); })();
@@ -458,7 +455,7 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
 function nextRound(first) {
   if (G.round >= CFG.rounds || G.hp <= 0) return endGame();
-  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = [];
+  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
   $('roundTxt').textContent = `Round ${G.round + 1} / ${CFG.rounds}`; $('pips').innerHTML = Array.from({ length: 7 }, (_, i) => `<i class="${i < p.lvl ? 'on' : ''}"></i>`).join('');
   $('catTxt').textContent = `${p.cat} · ${p.src}`; $('qTxt').textContent = p.q; $('ans').value = ''; $('fb').textContent = G.round === 0 ? 'Rarer answers hit harder.' : 'Any valid answer attacks.'; $('fb').className = 'fb';
   drawStrikes(); drawTrack(); $('askView').style.display = ''; $('reveal').classList.remove('on'); $('nextBtn').style.display = 'none';
@@ -466,15 +463,41 @@ function nextRound(first) {
   startTimer();
 }
 function drawStrikes() { $('strikes').innerHTML = 'MISSES ' + Array.from({ length: CFG.strikes }, (_, i) => `<i class="${i < G.strikes ? 'x' : ''}"></i>`).join(''); }
-function startTimer() { cancelAnimationFrame(timerRAF); const t0 = performance.now(), dur = CFG.time * 1000; let lastSec = CFG.time;
-  const tick = () => { if (G.locked) return; const left = Math.max(0, dur - (performance.now() - t0)), sec = Math.ceil(left / 1000); $('timerFill').style.transform = `scaleX(${left / dur})`; $('tleft').textContent = sec; const low = sec <= 5; $('timer').classList.toggle('low', low); $('tleft').classList.toggle('low', low); if (low && sec !== lastSec && sec > 0) blip('tick'); lastSec = sec; if (left <= 0) return resolve(null, 'time'); timerRAF = requestAnimationFrame(tick); };
+function startTimer(leftMs) { cancelAnimationFrame(timerRAF); const dur = CFG.time * 1000, t0 = performance.now() - (leftMs == null ? 0 : dur - leftMs); let lastSec = Math.ceil((leftMs == null ? dur : leftMs) / 1000);
+  const tick = () => { if (G.locked || G.checking) return; const left = Math.max(0, dur - (performance.now() - t0)), sec = Math.ceil(left / 1000); $('timerFill').style.transform = `scaleX(${left / dur})`; $('tleft').textContent = sec; const low = sec <= 5; $('timer').classList.toggle('low', low); $('tleft').classList.toggle('low', low); if (low && sec !== lastSec && sec > 0) blip('tick'); lastSec = sec; if (left <= 0) return resolve(null, 'time'); timerRAF = requestAnimationFrame(tick); };
   G.timeLeft = () => Math.max(0, dur - (performance.now() - t0)); timerRAF = requestAnimationFrame(tick); }
-$('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked) return; unlockAudio(); const raw = $('ans').value.trim(); if (!raw) return; const p = G.prompts[G.round], m = match(p, raw);
+$('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked || G.checking) return; unlockAudio(); const raw = $('ans').value.trim(); if (!raw) return; const p = G.prompts[G.round], m = match(p, raw);
   if (m.ans) return resolve(m.ans, null, raw);
+  // not on the list: ask the backend (shared validated answers, then the model) before counting a miss
+  if (m.none && API && CONF.aiCheck !== false && (G.aiN || 0) < (CONF.aiPerRound || 5)) return aiCheck(p, raw);
+  miss(p, raw, m); };
+function miss(p, raw, m) {
   G.strikes++; drawStrikes(); blip('bad'); const f = $('ansForm'); f.classList.remove('shake'); f.offsetWidth; f.classList.add('shake');
   $('fb').className = 'fb bad'; $('fb').textContent = m.ambiguous ? `“${raw}” could be more than one answer — be more specific.` : `“${raw}” isn't on our list. ${CFG.strikes - G.strikes > 0 ? (CFG.strikes - G.strikes) + ' miss' + (CFG.strikes - G.strikes > 1 ? 'es' : '') + ' left.' : ''}`;
-  if (!m.ambiguous) { const b = document.createElement('button'); b.type = 'button'; b.className = 'claim'; b.textContent = 'I think this is an answer'; b.onclick = () => { addClaim(p.id, raw); b.classList.add('on'); b.textContent = 'Flagged for review ✓'; $('ans').focus(); }; $('fb').appendChild(b); }
-  (G.missed = G.missed || []).push(raw); G.rmiss.push(raw); $('ans').select(); if (G.strikes >= CFG.strikes) resolve(null, 'strikes'); };
+  if (!m.ambiguous) claimBtn(p, raw);
+  (G.missed = G.missed || []).push(raw); G.rmiss.push(raw); $('ans').select(); if (G.strikes >= CFG.strikes) resolve(null, 'strikes'); }
+function claimBtn(p, raw, label) { const b = document.createElement('button'); b.type = 'button'; b.className = 'claim'; b.textContent = label || 'I think this is an answer'; b.onclick = () => { addClaim(p.id, raw); b.classList.add('on'); b.textContent = 'Flagged for review ✓'; $('ans').focus(); }; $('fb').appendChild(b); }
+// soft notice: no miss counted, timer keeps going
+function notice(text) { $('fb').className = 'fb'; $('fb').textContent = text; $('ans').select(); }
+async function aiCheck(p, raw) {
+  const g = G, round = G.round, left = G.timeLeft ? G.timeLeft() : CFG.time * 1000;
+  // the clock stops while we check, so a slow answer check never costs the player time
+  G.checking = true; G.aiN = (G.aiN || 0) + 1; cancelAnimationFrame(timerRAF); G.timeLeft = () => left;
+  $('ansForm').classList.add('chk'); $('ans').readOnly = true; $('fb').className = 'fb chk'; $('fb').textContent = `Checking “${raw}”…`;
+  const t0 = performance.now(); let r;
+  try { r = await api('/validate', { p: p.id, raw, player: PLAYER }, CONF.validateTimeoutMs || 4500); } catch (e) { r = { status: 'unavailable', reason: e && e.name === 'AbortError' ? 'timeout' : 'network' }; }
+  (window.__aiLog = window.__aiLog || []).push({ p: p.id, raw, status: r.status, source: r.source, ms: Math.round(performance.now() - t0) });
+  if (G !== g || G.round !== round || G.locked) return;          // round already ended (shouldn't happen: timer is paused)
+  G.checking = false; $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
+  if (r.status === 'valid' && r.answer && r.answer.key) {
+    window.FFCore.addExtra(p, [{ key: r.answer.key, name: r.answer.name, aliases: [norm(raw)], tier: r.answer.tier, status: r.answer.status === 'bank' ? 'approved' : r.answer.status }]);
+    const m2 = match(p, raw); return resolve(m2.ans || { key: r.answer.key, name: r.answer.name, tier: r.answer.tier, ai: r.answer.status !== 'approved' }, null, raw);
+  }
+  startTimer(left); $('ans').focus();
+  if (r.status === 'invalid') return miss(p, raw, { none: true });
+  if (r.status === 'ambiguous') return miss(p, raw, { ambiguous: true });
+  if (r.status === 'uncertain') { (G.unsure = G.unsure || []).push({ p: p.id, raw }); return notice(`We couldn't confirm “${raw}” yet — it's been sent for review. No miss counted.`); }
+  notice(`Couldn't check “${raw}” right now — no miss counted. Try another answer.`); }
 async function resolve(ans, why, raw) {
   if (G.locked) return; G.locked = true; cancelAnimationFrame(timerRAF); $('ans').blur();
   const p = G.prompts[G.round], tier = ans ? dynTier(p, ans) : null, T = tier ? TIERS[tier] : null;
@@ -517,6 +540,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /* ================= ANSWER CLAIMS ("I think this is an answer") ================= */
 function addClaim(pid, raw) { G.claims = G.claims || []; if (!G.claims.some(c => c.p === pid && c.raw === raw)) G.claims.push({ p: pid, raw });
+  if (API) api('/claim', { p: pid, raw, player: PLAYER }).catch(e => console.warn('claim', e));
   try { const L = JSON.parse(localStorage.getItem('ff_claims') || '[]'); L.push({ p: pid, raw, ts: Date.now() }); localStorage.setItem('ff_claims', JSON.stringify(L.slice(-500))); } catch (e) { } }
 // plain-text report a tester can paste to the developer: every run on this device, with typed answers, rejected guesses and flags
 function buildReport() { const runs = Store.local(), P = id => PROMPTS.find(p => p.id === id) || { q: id };
@@ -524,14 +548,15 @@ function buildReport() { const runs = Store.local(), P = id => PROMPTS.find(p =>
   runs.forEach((r, i) => { lines.push('', `Run ${i + 1} · ${new Date(r.ts).toLocaleString()} · ${r.mode} · ${r.score} pts · ${r.rank}`);
     (r.ans || []).forEach((a, j) => { const p = P(a.p), nm = a.a ? ((p.answers || []).find(x => x.key === a.a) || {}).name || a.a : null;
       lines.push(`  R${j + 1} [${a.p}] ${a.t ? a.t + ' · ' + nm + (a.r && a.r !== nm ? ` (typed "${a.r}")` : '') : 'no answer'}${a.miss && a.miss.length ? ' · rejected: ' + a.miss.map(m => `"${m}"`).join(', ') : ''}`); });
-    if (r.claims && r.claims.length) lines.push('  FLAGGED: ' + r.claims.map(c => `[${c.p}] "${c.raw}"`).join(', ')); });
+    if (r.claims && r.claims.length) lines.push('  FLAGGED: ' + r.claims.map(c => `[${c.p}] "${c.raw}"`).join(', '));
+    if (r.unsure && r.unsure.length) lines.push('  SENT FOR REVIEW (AI unsure): ' + r.unsure.map(c => `[${c.p}] "${c.raw}"`).join(', ')); });
   return lines.join('\n'); }
 function openReport() { $('repTxt').value = buildReport(); $('repModal').classList.add('on'); }
 
 /* ================= RESULTS ================= */
 async function endGame() {
   G.over = true; const rank = rankOf(G.score);
-  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() };
+  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice();
   if (Q.get('who')) run.who = Q.get('who');
   if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
   window.__lastRun = run;
@@ -555,10 +580,10 @@ function renderResults(run, all, where) {
   $('seedNote').textContent = S.seedW > 0.01 ? `Includes a starter pool of simulated players while the game is new (${Math.round(S.seedW * 100)}% weight now) — it fades out as more people play. ${S.liveN || 0} real run${S.liveN === 1 ? '' : 's'} so far.` : '';
   const P = id => PROMPTS.find(p => p.id === id);
   $('recap').innerHTML = run.ans.map((a, i) => { const p = P(a.p), T = a.t ? TIERS[a.t] : null, tot = S.pn[a.p] || 0, cnt = a.a ? ((S.ans[a.p] || {})[a.a] || 0) : 0;
-    const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.key !== a.a && ['S', 'A'].includes(dynTier(p, x))).sort((x, y) => (shareOf(p.id, x.key) || 0) - (shareOf(p.id, y.key) || 0) || 'SABCDE'.indexOf(x.tier) - 'SABCDE'.indexOf(y.tier)).slice(0, 3).map(x => x.name);
+    const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.key !== a.a && !x.ai && ['S', 'A'].includes(dynTier(p, x))).sort((x, y) => (shareOf(p.id, x.key) || 0) - (shareOf(p.id, y.key) || 0) || 'SABCDE'.indexOf(x.tier) - 'SABCDE'.indexOf(y.tier)).slice(0, 3).map(x => x.name);
     return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName || '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
   $('recap').querySelectorAll('.claim').forEach(b => b.onclick = () => { if (b.classList.contains('on')) return; const raw = b.dataset.raw, pid = b.dataset.p; addClaim(pid, raw); run.claims = run.claims || []; if (!run.claims.some(c => c.p === pid && c.raw === raw)) run.claims.push({ p: pid, raw }); b.classList.add('on'); b.textContent = 'Flagged ✓'; Store.patch(run); toast('Thanks — flagged for review'); });
-  $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
+  $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : API ? 'Scores are saved on this device only — the score server could not be reached.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
   window.__resultsReady = !!all;
 }
 function countUp(el, to) { const t0 = performance.now(), d = 1300; const f = () => { const k = Math.min(1, (performance.now() - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); }; f(); }

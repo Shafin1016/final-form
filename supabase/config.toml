@@ -1,0 +1,7 @@
+# Minimal Supabase CLI config for Final Form. `supabase link` fills in the rest.
+project_id = "final-form"
+
+[functions.ff]
+# The game calls this function from the browser without a Supabase login, so the gateway's JWT check is off.
+# The function protects itself: CORS allowlist, rate limits, input checks, admin token for /admin routes.
+verify_jwt = false

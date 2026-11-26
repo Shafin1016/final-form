@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Final Form · Answer review</title>
+<style>
+:root{--bg:#0d0d10;--card:#17171c;--line:rgba(255,255,255,.1);--ink:#e9e7e1;--muted:#8d8b86;--ok:#7fd18b;--bad:#ff8a7a;--gold:#e8c46a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 80px}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.04em}
+p.sub{color:var(--muted);margin:0 0 18px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,button{font:inherit;color:var(--ink);background:#101014;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+input.w{flex:1;min-width:240px}button{cursor:pointer;background:#22222a}button:hover{border-color:#fff}button.ok{border-color:rgba(127,209,139,.5);color:var(--ok)}button.bad{border-color:rgba(255,138,122,.5);color:var(--bad)}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:600}td small{color:var(--muted);display:block}.tag{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.claim{color:var(--gold);border-color:rgba(232,196,106,.4)}.tag.invalid{color:var(--bad)}.tag.uncertain{color:#9fc3ff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{background:var(--card);border-radius:10px;padding:12px}.stat b{font-size:20px;display:block}.stat span{color:var(--muted);font-size:12px}
+#msg{color:var(--muted);min-height:20px;margin-top:10px}.done{opacity:.35;pointer-events:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Answer review</h1>
+  <p class="sub">Answers the AI accepted are live but capped at Epic (B) rarity until you approve them. Uncertain and claimed guesses wait here for a decision. Nothing on this page is cached; the token stays in this tab only.</p>
+  <div class="row">
+    <input class="w" id="api" placeholder="Backend URL — https://YOUR-REF.supabase.co/functions/v1/ff">
+    <input id="tok" type="password" placeholder="Admin token">
+    <button id="load">Load</button>
+  </div>
+  <div id="msg"></div>
+
+  <h2>LAST 24 HOURS</h2>
+  <div class="stats" id="stats"></div>
+
+  <h2>AI-ACCEPTED ANSWERS · <span id="nA">0</span></h2>
+  <table><thead><tr><th>Prompt</th><th>Answer</th><th>Spellings seen</th><th>Conf.</th><th>Tier</th><th></th></tr></thead><tbody id="ans"></tbody></table>
+
+  <h2>WAITING FOR A DECISION · <span id="nV">0</span></h2>
+  <table><thead><tr><th>Prompt</th><th>Typed</th><th>Why</th><th>Times</th><th>Accept as</th><th>Tier</th><th></th></tr></thead><tbody id="ver"></tbody></table>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); for (const k of kids) e.append(k); return e; };  // text only, never innerHTML
+const TIERS = ['', 'S', 'A', 'B', 'C', 'D', 'E'];
+const tierSel = v => { const s = el('select'); for (const t of TIERS) s.append(el('option', { value: t, textContent: t || 'auto', selected: t === (v || '') })); return s; };
+$('api').value = sessionStorage.getItem('ff_api') || localStorage.getItem('ff_admin_api') || ''; $('tok').value = sessionStorage.getItem('ff_tok') || '';
+async function call(path, body) {
+  const api = $('api').value.trim().replace(/\/$/, ''), tok = $('tok').value.trim();
+  const r = await fetch(api + path, { method: body ? 'POST' : 'GET', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); return j;
+}
+const say = t => { $('msg').textContent = t; };
+const promptCell = x => el('td', {}, x.prompt ? x.prompt.q : x.prompt_id, el('small', { textContent: x.prompt_id + (x.prompt ? ' · ' + x.prompt.src : '') }));
+async function decide(row, body) { try { await call('/admin/decide', body); row.classList.add('done'); say('Saved.'); } catch (e) { say('Error: ' + e.message); } }
+async function load() {
+  sessionStorage.setItem('ff_api', $('api').value.trim()); localStorage.setItem('ff_admin_api', $('api').value.trim()); sessionStorage.setItem('ff_tok', $('tok').value.trim());
+  say('Loading…');
+  try {
+    const [q, m] = await Promise.all([call('/admin/queue'), call('/admin/metrics?hours=24')]);
+    const M = m.metrics || {}, n = k => (M[k] && M[k].n) || 0, lat = k => M[k] && M[k].p50 != null ? Math.round(M[k].p50) + ' / ' + Math.round(M[k].p95) + ' ms' : '—';
+    const lookups = n('bank') + n('cache') + n('neg') + n('dedupe') + n('ai-valid') + n('ai-invalid') + n('ai-uncertain') + n('error') + n('rate');
+    const cached = n('bank') + n('cache') + n('neg') + n('dedupe');
+    $('stats').replaceChildren(...[
+      ['Server checks', lookups], ['Answered without the model', lookups ? Math.round(cached / lookups * 100) + '%' : '—'],
+      ['Cache p50 / p95', lat('cache')], ['Model p50 / p95', lat('ai-valid') !== '—' ? lat('ai-valid') : lat('ai-invalid')],
+      ['Model calls', n('ai-valid') + n('ai-invalid') + n('ai-uncertain')], ['Errors / rate-limited', n('error') + ' / ' + n('rate')],
+    ].map(([k, v]) => el('div', { className: 'stat' }, el('b', { textContent: String(v) }), el('span', { textContent: k }))));
+    $('nA').textContent = q.answers.length; $('nV').textContent = q.verdicts.length;
+    $('ans').replaceChildren(...q.answers.map(a => {
+      const tr = el('tr'), name = el('input', { value: a.name }), t = tierSel(a.tier);
+      tr.append(promptCell(a), el('td', {}, name, el('small', { textContent: a.source === 'ai-alias' ? 'new spelling of a bank answer' : 'new answer' })), el('td', { textContent: (a.aliases || []).join(', ') }),
+        el('td', { textContent: a.confidence != null ? Number(a.confidence).toFixed(2) : '' }), el('td', {}, t),
+        el('td', {}, el('div', { className: 'row' },
+          el('button', { className: 'ok', textContent: 'Approve', onclick: () => decide(tr, { type: 'answer', p: a.prompt_id, key: a.key, action: 'approve', tier: t.value || null, name: name.value.trim() }) }),
+          el('button', { className: 'bad', textContent: 'Reject', onclick: () => decide(tr, { type: 'answer', p: a.prompt_id, key: a.key, action: 'reject' }) }))));
+      return tr; }));
+    $('ver').replaceChildren(...q.verdicts.map(v => {
+      const tr = el('tr'), name = el('input', { value: v.ai_name || v.raw }), t = tierSel(null);
+      tr.append(promptCell(v), el('td', { textContent: v.raw }), el('td', {}, el('span', { className: 'tag ' + v.verdict, textContent: v.verdict === 'claim' ? 'player claim' : v.verdict === 'invalid' ? 'AI said no' : 'AI unsure' }), el('small', { textContent: v.confidence != null ? 'conf ' + Number(v.confidence).toFixed(2) : '' })),
+        el('td', { textContent: String(v.count) }), el('td', {}, name), el('td', {}, t),
+        el('td', {}, el('div', { className: 'row' },
+          el('button', { className: 'ok', textContent: 'Accept', onclick: () => decide(tr, { type: 'verdict', p: v.prompt_id, norm: v.norm, action: 'approve', name: name.value.trim(), tier: t.value || null }) }),
+          el('button', { className: 'bad', textContent: 'Not an answer', onclick: () => decide(tr, { type: 'verdict', p: v.prompt_id, norm: v.norm, action: 'reject' }) }),
+          el('button', { textContent: 'Skip', onclick: () => decide(tr, { type: 'verdict', p: v.prompt_id, norm: v.norm, action: 'dismiss' }) }))));
+      return tr; }));
+    say(`Loaded ${q.answers.length + q.verdicts.length} items.`);
+  } catch (e) { say('Error: ' + e.message); }
+}
+$('load').onclick = load; if ($('api').value && $('tok').value) load();
+</script>
+</body>
+</html>

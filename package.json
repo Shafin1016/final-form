@@ -1,0 +1,16 @@
+{
+  "name": "final-form",
+  "private": true,
+  "description": "Final Form daily trivia — no runtime dependencies. Scripts need Node 20+ (tools) and Bun (tests).",
+  "scripts": {
+    "build:server": "node tools/build-server-data.mjs",
+    "check:server": "node tools/build-server-data.mjs --check",
+    "test": "node tools/build-server-data.mjs --check && bun test tests/",
+    "test:sql": "bash tests/sql.test.sh",
+    "test:browser": "python3 tests/browser_test.py",
+    "bench": "bun tests/bench.ts",
+    "dev": "bun tests/dev-server.ts",
+    "expand": "node tools/expand-bank.mjs",
+    "apply-expansion": "node tools/apply-expansion.mjs"
+  }
+}
