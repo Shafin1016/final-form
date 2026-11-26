@@ -173,6 +173,9 @@ button{font-family:inherit;cursor:pointer}
 .spark{position:absolute;width:10px;height:10px;pointer-events:none;z-index:3;background:#fff;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);animation:twinkle 1.6s ease-in-out infinite;filter:drop-shadow(0 0 6px #fff)}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.2) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.6;transform:scale(.7) rotate(70deg)}}
 .float.mythT{font-size:42px}
+.float.hurt{left:27%;top:42%;color:#ff6a5a;font-size:38px}
+.stage.countered{animation:counterShake .45s cubic-bezier(.36,.07,.19,.97)}.stage.countered::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:6;background:radial-gradient(ellipse at 28% 60%,rgba(255,60,40,.42),rgba(120,0,0,.18) 55%,transparent 80%);animation:counterFlash .9s ease-out forwards}
+@keyframes counterShake{10%,90%{transform:translate(-2px,0)}20%,80%{transform:translate(4px,1px)}30%,50%,70%{transform:translate(-7px,-1px)}40%,60%{transform:translate(7px,1px)}}@keyframes counterFlash{from{opacity:1}to{opacity:0}}
 @media (prefers-reduced-motion:reduce){.myth,.mythT,.myth::after,.spark{animation:none}}
 .tc{display:inline-flex;width:26px;height:26px;border-radius:7px;align-items:center;justify-content:center;font:800 14px "Shippori Mincho B1",serif;color:#0a0a0c}
 .recap .pp{text-align:right;font:800 13px Inter;white-space:nowrap}
@@ -235,7 +238,7 @@ button{font-family:inherit;cursor:pointer}
     <div class="stagewrap">
       <div class="stage" id="stage"><div class="say" id="say"><small id="sayWho"></small><span id="sayTxt"></span></div>
         <div class="hud" id="hud">
-          <div class="bar"><div class="who">You <em id="hpTxt">150 / 150</em></div><div class="hpo"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div></div>
+          <div class="bar"><div class="who">You <em id="hpTxt">100 / 100</em></div><div class="hpo"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i></div></div>
           <div class="score"><b id="scoreTxt">0</b><span>POINTS</span></div>
           <div class="bar r"><div class="who"><em id="rvTxt">200 / 200</em><span id="rvName">Oni Brute</span></div><div class="hpo"><i class="lag" id="rvLag"></i><i class="fill" id="rvFill"></i></div></div>
         </div>
@@ -284,7 +287,7 @@ button{font-family:inherit;cursor:pointer}
 
 <div class="modal" id="howModal"><div class="card"><h3>How to play</h3>
 <p>You get seven prompts — anime and video games — starting easy and getting harder each round. Type any valid answer within 30 seconds.</p>
-<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Some forms cost you HP to use.</p>
+<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Common and Uncommon hits get countered: the rival strikes back for 20 HP.</p>
 <p style="margin-top:10px">Three answers we don't recognise, or the timer running out, and the rival counterattacks. Damage carries over between rounds — knock a rival out and the next one steps in: the Oni Brute, then the Iron Warden, then the Hollow, and round again. Lose all your HP and the run ends.</p>
 <p style="margin-top:10px">Your score is the total damage you deal. It sets your rank: Bronze, Silver, Gold or Platinum.</p>
 <div style="margin-top:16px;text-align:right"><button class="btn main" id="howClose">Got it</button></div></div></div>
@@ -311,14 +314,14 @@ button{font-family:inherit;cursor:pointer}
 <script>
 (() => {
 /* ================= CONFIG ================= */
-const CFG = { rounds: 7, time: 30, strikes: 3, hp: 150, rivalHP: 200, missDmg: 20 };
+const CFG = { rounds: 7, time: 30, strikes: 3, hp: 100, rivalHP: 200, missDmg: 20, counterDmg: 20 };
 const TIERS = {
   S: { name: 'Mythic', col: '#dfe8ff', pts: 100, taken: 0, cuts: ['s'], abil: { s: 'Silver Instinct' } },
-  A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 25, cuts: ['a', 'a2'], abil: { a: 'Rock', a2: 'Radiant Cannon' } },
+  A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 0, cuts: ['a'], abil: { a: 'Rock' } },
   B: { name: 'Epic', col: '#b98cff', pts: 50, taken: 0, cuts: ['b'], abil: { b: 'Malicious Fate' } },
   C: { name: 'Rare', col: '#6aa8ff', pts: 35, taken: 0, cuts: ['c'], abil: { c: 'Phantom Rush' } },
-  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 0, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
-  E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 15, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
+  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 20, counter: true, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
+  E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 20, counter: true, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
 };
 const ORDER = ['S', 'A', 'B', 'C', 'D', 'E'];
 const MY = k => k === 'S' ? ' myth' : '', MYT = k => k === 'S' ? ' mythT' : '';
@@ -439,7 +442,7 @@ let soundOn = localStorage.getItem('ff_sound') !== 'off', AC = null;
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 // one preloaded audio element per cutscene, so sound starts the instant a cutscene does
 // bump when cutscenes or their sounds change, so browsers fetch the new files instead of a cached copy
-const CUT_V = '202611261728';
+const CUT_V = '202611261740';
 const AUDS = {};
 function cutAudio(id, url) { if (AUDS[id]) return AUDS[id]; const el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', ''); el.src = url + (url.includes('?') ? '&' : '?') + 'v=' + CUT_V; try { el.load(); } catch (e) { } AUDS[id] = el; return el; }
 function unlockAudio() { try { AUDIO.src = SILENT; AUDIO.play().then(() => AUDIO.pause()).catch(() => { }); } catch (e) { }
@@ -454,7 +457,7 @@ function sndLabel() { $('sndBtn').textContent = soundOn ? 'Sound on' : 'Sound of
 $('sndBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('ff_sound', soundOn ? 'on' : 'off'); if (!soundOn) { AUDIO.pause(); if (CUR) CUR.pause(); } sndLabel(); }; sndLabel();
 
 /* ================= CUTSCENES (embedded, preloaded) ================= */
-const CUT_IDS = ['x', 'i', 'k', 's', 'a', 'a2', 'b', 'c', 'd', 'd2', 'e', 'e2'];
+const CUT_IDS = ['x', 'i', 'k', 's', 'a', 'b', 'c', 'd', 'd2', 'e', 'e2'];
 const frames = {}, cutSrc = {}, ready = {}, audioIn = {};
 let activeCut = null, cutResolve = null, cutGuard = 0, CUR = null;
 function loadProgress() { const n = CUT_IDS.filter(i => audioIn[i]).length, r = CUT_IDS.filter(i => ready[i]).length; $('loadBar').style.width = Math.round((n + r) / (CUT_IDS.length * 2) * 100) + '%';
@@ -490,7 +493,7 @@ $('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); }
 /* ================= HOME ================= */
 $('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 $('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
-$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP${T.counter ? ' counter' : ''}</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
 $('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
 const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
@@ -596,16 +599,19 @@ async function resolve(ans, why, raw) {
   $('askView').style.display = 'none'; $('reveal').classList.add('on'); const tb = $('rvTier'); tb.textContent = tier || '✕'; tb.style.background = tier ? T.col : 'var(--X)'; mythify(tier);
   $('rvT1').textContent = tier ? `${T.name} · ${abil}` : (why === 'time' ? "Time's up" : 'Out of guesses');
   $('rvT2').textContent = tier ? ans.name : 'No attack';
-  $('rvT3').textContent = tier ? `${tier === 'S' ? 'Instant K.O.' : dealt + ' damage'}${taken ? ` · costs you ${taken} HP` : ''} · +${pts} points` : `The rival counterattacks for ${taken} HP.`;
+  const willCounter = tier && T.counter && G.rv - dealt > 0;
+  $('rvT3').textContent = tier ? `${tier === 'S' ? 'Instant K.O.' : dealt + ' damage'}${willCounter ? ` · the rival will counter for ${taken} HP` : T.counter ? '' : taken ? ` · costs you ${taken} HP` : ''} · +${pts} points` : `The rival counterattacks for ${taken} HP.`;
   blip(tier ? 'good' : 'bad');
-  G.res[G.round] = { miss: (G.rmiss || []).slice(), p: p.id, a: tier ? ans.key : null, name: tier ? ans.name : null, raw: raw || null, tier, pts, dealt, taken, cut, why: why || null, ms: Math.round(CFG.time * 1000 - (G.timeLeft ? G.timeLeft() : 0)) }; if (tier && G.lastSug && G.lastSug === raw) G.res[G.round].sug = true;
+  G.res[G.round] = { miss: (G.rmiss || []).slice(), p: p.id, a: tier ? ans.key : null, name: tier ? ans.name : null, raw: raw || null, tier, pts, dealt, taken: tier && T.counter ? (willCounter ? taken : 0) : taken, cut, why: why || null, ms: Math.round(CFG.time * 1000 - (G.timeLeft ? G.timeLeft() : 0)) }; if (tier && G.lastSug && G.lastSug === raw) G.res[G.round].sug = true;
   drawTrack();
   await wait(FAST ? 0 : 900);
   await playCut(cut, pts);
   // apply results after the cutscene
-  G.score += pts; G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
+  G.score += pts; if (!(tier && T.counter)) G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
   if (pts) { const fl = document.createElement('div'); fl.className = 'float' + MYT(tier); fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
   let note = '';
+  // weak hits (Common / Uncommon) get answered right away
+  if (tier && T.counter && G.rv > 0) await counterAttack(taken);
   if (G.rv <= 0) { G.kos++; note = 'ko'; const dead = foe(G.rvN);
     // the beaten rival dies on screen (Mythic's own scene already blasts him away), the stage stays empty through the
     // K.O. banner, and the next rival only appears by leaping in
@@ -628,10 +634,22 @@ const FOE_LINES = {
 let lastLine = {};
 function pickLine(id) { const L = FOE_LINES[id]; if (!L || !L.length) return null; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastLine[id]) i = (i + 1) % L.length; lastLine[id] = i; return L[i]; }
 let sayTimer = 0, sayTok = 0;
-function rivalSay(f, onlyIf = true) { const line = pickLine(f.id); if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on');
+function rivalSay(f, onlyIf = true, text = null) { const line = text || pickLine(f.id); if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on');
   return new Promise(res => { const full = '“' + line + '”'; let i = 0; sayTimer = setInterval(() => { i++; $('sayTxt').textContent = full.slice(0, i); if (i >= full.length) { clearInterval(sayTimer); setTimeout(res, 900); setTimeout(() => { if (tok === sayTok) $('say').classList.remove('on'); }, 2600); } }, 38); }); }
 function banner(b, s) { return new Promise(res => { if (FAST) return res(); $('bannerB').textContent = b; $('bannerS').textContent = s; $('banner').classList.add('on'); setTimeout(() => { $('banner').classList.remove('on'); setTimeout(res, 250); }, 1700); }); }
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// rival answers a weak hit: red flash + shake, −20 over the hero, banner, and a taunt
+const COUNTER_LINES = {
+  oni: ["You'll have to do better than that.", 'That tickled.', 'Is that all you brought?'],
+  warden: ["You'll have to do better than that.", 'Predictable.', 'Common steel bends. Mine does not.'],
+  hollow: ["You'll have to do better than that.", 'Weak.', 'YLLACOFM'],
+};
+let lastCounter = {};
+async function counterAttack(n) { const f = foe(G.rvN), L = COUNTER_LINES[f.id] || COUNTER_LINES.oni; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastCounter[f.id]) i = (i + 1) % L.length; lastCounter[f.id] = i;
+  G.hp -= n; if (FAST) { setHP(); return; }
+  const st = $('stage'); st.classList.remove('countered'); st.offsetWidth; st.classList.add('countered'); blip('bad');
+  const fl = document.createElement('div'); fl.className = 'float hurt'; fl.textContent = '−' + n; st.appendChild(fl); setTimeout(() => fl.remove(), 1600); setHP();
+  await Promise.all([banner('COUNTERATTACK', `${f.name} hits back · −${n} HP`), wait(250).then(() => rivalSay(f, true, L[i]))]); st.classList.remove('countered'); }
 
 /* ================= ANSWER CLAIMS ("I think this is an answer") ================= */
 function addClaim(pid, raw) { G.claims = G.claims || []; if (!G.claims.some(c => c.p === pid && c.raw === raw)) G.claims.push({ p: pid, raw });

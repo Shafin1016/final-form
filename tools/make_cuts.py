@@ -1,5 +1,5 @@
 import re
-SRC={'i':'intro.html','s':'index.html','a':'a.html','a2':'a2.html','b':'b.html','c':'c.html','d':'d.html','d2':'d2.html','e':'e.html','e2':'e2.html','x':'x.html','k':'k.html'}
+SRC={'i':'intro.html','s':'index.html','a':'a.html','b':'b.html','c':'c.html','d':'d.html','d2':'d2.html','e':'e.html','e2':'e2.html','x':'x.html','k':'k.html'}
 HEAD="""<script>window.EMBED=/[?&]embed/.test(location.search);if(window.EMBED)document.documentElement.classList.add('embed')</script>
 <style>.embed body{padding:0!important;background:#000!important;min-height:0!important;display:block!important;overflow:hidden}.embed h1,.embed .sub,.embed .nav,.embed .row,.embed .note,.embed .play{display:none!important}.embed .stage{max-width:none!important;border-radius:0!important;box-shadow:none!important}</style>
 </head>"""

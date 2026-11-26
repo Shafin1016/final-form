@@ -29,7 +29,7 @@ canvas{display:block;width:100%;height:auto;background:#000}
 </head>
 <body>
 <h1>BLACK CRESCENT</h1><div class="sub">D rank · ability preview</div>
-<div class="nav"><a href="index.html">S · Silver Instinct</a><a href="a.html">A · Rock</a><a href="a2.html">A · Radiant Cannon</a><a href="b.html">B · Malicious Fate</a><a href="c.html">C · Phantom Rush</a><a href="#d" class="on">D · Random (Crescent / Orb)</a><a href="#e">E · Random (Spark / Steam)</a><a href="x.html">✕ · Enemy counter</a><a href="intro.html">Rival entrance</a></div>
+<div class="nav"><a href="index.html">S · Silver Instinct</a><a href="a.html">A · Rock</a><a href="b.html">B · Malicious Fate</a><a href="c.html">C · Phantom Rush</a><a href="#d" class="on">D · Random (Crescent / Orb)</a><a href="#e">E · Random (Spark / Steam)</a><a href="x.html">✕ · Enemy counter</a><a href="intro.html">Rival entrance</a></div>
 <div class="nav" style="margin-top:-8px"><a href="d2.html">Other D cutscene: Spiral Orb</a></div>
 <div class="nav" style="margin-top:-8px" id="rivalNav"><a href="?rival=oni">Rival: Oni Brute</a><a href="?rival=warden">Iron Warden</a><a href="?rival=hollow">The Hollow</a></div><div class="stage"><canvas id="c"></canvas><div class="play" id="ov"><button id="go">Play</button></div></div>
 <div class="row"><button id="replay">Replay</button><button id="slow">Slow-mo</button><button id="snd" class="on">Sound on</button></div>
@@ -741,7 +741,7 @@ function render(sdt) {
   if (flash > .01) { ctx.save(); ctx.globalAlpha = Math.min(1, flash); ctx.fillStyle = flashC; ctx.fillRect(0, 0, W, H); ctx.restore(); }
   ctx.drawImage(vig, 0, 0, W, H);
   const lb = t > 0 && t < T.glyph + .4 ? clamp(prog(t, 0, .5)) * (t > T.glyph ? 1 - prog(t, T.glyph, T.glyph + .4) : 1) : 0; if (lb > 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, 40 * lb); ctx.fillRect(0, H - 40 * lb, W, 40 * lb); }
-  if (t > T.glyph) endCard(t - T.glyph, 'D', 'UNCOMMON', 'BLACK CRESCENT', '2 5   D E A L T   ·   0   T A K E N', '#7fd18b');
+  if (t > T.glyph) endCard(t - T.glyph, 'D', 'UNCOMMON', 'BLACK CRESCENT', '2 5   D E A L T', '#7fd18b');
   overlays();
 }
 function spaced(str, x, y, font, sp, col) { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; const ws = [...str].map(c => ctx.measureText(c).width), tot = ws.reduce((a, b) => a + b, 0) + sp * (str.length - 1); let cx = x - tot / 2; [...str].forEach((c, i) => { ctx.fillText(c, cx, y); cx += ws[i] + sp; }); return tot; }
