@@ -470,12 +470,17 @@ $('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked || G.check
   // Enter again on an unchanged guess = take the suggestion
   if (G.sug && G.sug.raw === raw && G.sug.round === G.round) return takeSug();
   const m = match(p, raw);
-  if (m.ans) return resolve(m.ans, null, raw);
-  // close to an answer but not close enough to auto-accept: offer it, no miss, nothing sent anywhere
+  // exactly a listed spelling (any case/punctuation): attack straight away
+  if (m.ans && !m.fuzzy) return resolve(m.ans, null, raw);
+  // anything the game had to correct (typo, extra words, short form) or a near-miss: show the corrected answer first,
+  // no miss, nothing sent anywhere; Enter/click confirms
+  if (m.ans && G.sugSkip !== raw) return offerSug(p, raw, m.ans);
   if (m.none && G.sugSkip !== raw) { const s = window.FFCore.suggest(p, raw); if (s) return offerSug(p, raw, s); }
   // not on the list: ask the backend (shared validated answers, then the model) before counting a miss
-  if (m.none && API && !AI_DOWN && CONF.aiCheck !== false && (G.aiN || 0) < (CONF.aiPerRound || 5)) return aiCheck(p, raw);
-  miss(p, raw, m); };
+  // the player turned down the correction: judge the guess as typed
+  const mm = m.ans ? { none: true } : m;
+  if (mm.none && API && !AI_DOWN && CONF.aiCheck !== false && (G.aiN || 0) < (CONF.aiPerRound || 5)) return aiCheck(p, raw);
+  miss(p, raw, mm); };
 function offerSug(p, raw, ans) {
   G.sug = { raw, ans, round: G.round }; $('fb').className = 'fb'; $('fb').textContent = 'Did you mean ';
   const b = document.createElement('button'); b.type = 'button'; b.className = 'sug'; b.textContent = `“${ans.name}”`; b.onclick = () => takeSug();
