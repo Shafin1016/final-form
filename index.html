@@ -101,7 +101,14 @@ button{font-family:inherit;cursor:pointer}
 @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 .under{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;min-height:20px}
 .fb{font-size:12px;color:var(--muted)}.fb.bad{color:#ff8a7a}.fb.chk{color:#e9e7e1}.fb.chk::before{content:'';display:inline-block;width:9px;height:9px;margin-right:7px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}.ansrow.chk{opacity:.6;pointer-events:none}
-.fb .sug{background:none;border:0;padding:0;color:#fff;font:600 13px Inter;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.35);text-underline-offset:3px}.fb .sug:hover{text-decoration-color:#fff}.fb .sughint{color:var(--muted);font-size:11px;margin-left:8px}.claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
+.sugbox{display:none;align-items:center;gap:16px;margin-top:12px;padding:16px 18px 16px 20px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border:1px solid var(--line2);border-radius:14px;box-shadow:0 18px 40px -24px rgba(0,0,0,.9)}
+.sugbox.on{display:flex;animation:sugIn .22s cubic-bezier(.2,.8,.2,1)}@keyframes sugIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sugbox .st{flex:1;min-width:0}.sugbox small{display:block;font:700 10px Inter;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sugbox b{display:block;font:800 clamp(20px,2.8vw,26px)/1.2 "Shippori Mincho B1",Georgia,serif;color:#fff;letter-spacing:.01em;overflow-wrap:anywhere}
+.sugbox .sa{display:flex;gap:8px;flex:none}.sugbox .btn{padding:12px 18px;font-size:11px;letter-spacing:.16em}.sugbox .btn:hover{transform:translateY(-1px)}
+.sugbox kbd{font:700 10px Inter;margin-left:8px;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.12);letter-spacing:.06em}
+.sugbox .btn.ghost{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:.02em;font:600 13px Inter}
+@media (max-width:620px){.sugbox kbd{display:none}.sugbox{flex-direction:column;align-items:stretch;gap:12px}.sugbox .sa{width:100%}.sugbox .btn{flex:1;padding:13px 12px}.sugbox .btn.ghost{max-width:none}}.claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
 .misses{margin-top:6px;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.misses s{color:#ff8a7a;text-decoration:none}
 .rep{width:100%;height:220px;background:#0b0c0f;color:#d8d6cf;border:1px solid var(--line2);border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
 .strikes{display:flex;gap:6px;align-items:center;font:700 9px Inter;letter-spacing:.2em;color:var(--muted)}
@@ -217,6 +224,7 @@ button{font-family:inherit;cursor:pointer}
         <div class="meta"><span id="roundTxt">Round 1 / 7</span><span class="pips" id="pips"></span><span class="chip" id="catTxt">Anime</span></div>
         <div class="q" id="qTxt">—</div>
         <form class="ansrow" id="ansForm" autocomplete="off"><input id="ans" placeholder="Type your answer…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"><button class="btn main" type="submit">Attack</button></form>
+        <div class="sugbox" id="sugBox" role="status" aria-live="polite"><div class="st"><small>Did you mean</small><b id="sugName"></b></div><div class="sa"><button class="btn ghost" type="button" id="sugNo"></button><button class="btn main" type="button" id="sugYes">Use this<kbd>↵</kbd></button></div></div>
         <div class="under"><span class="fb" id="fb">Rarer answers hit harder.</span><span style="display:flex;gap:16px;align-items:center"><span class="strikes" id="strikes">MISSES <i></i><i></i><i></i></span><span class="tleft" id="tleft">30</span></span></div>
       </div>
       <div class="reveal" id="reveal">
@@ -455,7 +463,7 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
 function nextRound(first) {
   if (G.round >= CFG.rounds || G.hp <= 0) return endGame();
-  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; G.sug = null; G.sugSkip = null; G.lastSug = null; $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
+  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; G.sug = null; G.sugSkip = null; G.lastSug = null; hideSug(); $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
   $('roundTxt').textContent = `Round ${G.round + 1} / ${CFG.rounds}`; $('pips').innerHTML = Array.from({ length: 7 }, (_, i) => `<i class="${i < p.lvl ? 'on' : ''}"></i>`).join('');
   $('catTxt').textContent = `${p.cat} · ${p.src}`; $('qTxt').textContent = p.q; $('ans').value = ''; $('fb').textContent = G.round === 0 ? 'Rarer answers hit harder.' : 'Any valid answer attacks.'; $('fb').className = 'fb';
   drawStrikes(); drawTrack(); $('askView').style.display = ''; $('reveal').classList.remove('on'); $('nextBtn').style.display = 'none';
@@ -482,14 +490,14 @@ $('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked || G.check
   if (mm.none && API && !AI_DOWN && CONF.aiCheck !== false && (G.aiN || 0) < (CONF.aiPerRound || 5)) return aiCheck(p, raw);
   miss(p, raw, mm); };
 function offerSug(p, raw, ans) {
-  G.sug = { raw, ans, round: G.round }; $('fb').className = 'fb'; $('fb').textContent = 'Did you mean ';
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'sug'; b.textContent = `“${ans.name}”`; b.onclick = () => takeSug();
-  const no = document.createElement('button'); no.type = 'button'; no.className = 'claim'; no.textContent = `No, I meant “${raw}”`;
-  no.onclick = () => { G.sug = null; G.sugSkip = raw; $('ans').value = raw; $('ansForm').requestSubmit(); };
-  const hint = document.createElement('span'); hint.className = 'sughint'; hint.textContent = 'Enter to accept';
-  $('fb').append(b, '?', hint, no); $('ans').focus(); }
-$('ans').addEventListener('input', () => { if (G && G.sug && $('ans').value.trim() !== G.sug.raw) { G.sug = null; $('fb').className = 'fb'; $('fb').textContent = ''; } });
-function takeSug() { const s = G.sug; if (!s || G.locked) return; G.sug = null; G.sugUsed = (G.sugUsed || 0) + 1; G.lastSug = s.raw; resolve(s.ans, null, s.raw); }
+  G.sug = { raw, ans, round: G.round }; $('fb').className = 'fb'; $('fb').textContent = '';
+  $('sugName').textContent = ans.name; $('sugNo').textContent = `No, “${raw}”`; $('sugNo').title = `Check “${raw}” as typed`;
+  const box = $('sugBox'); box.classList.remove('on'); box.offsetWidth; box.classList.add('on'); $('ans').focus(); }
+function hideSug() { $('sugBox').classList.remove('on'); }
+$('sugYes').onclick = () => takeSug();
+$('sugNo').onclick = () => { if (!G || !G.sug) return; const raw = G.sug.raw; G.sug = null; hideSug(); G.sugSkip = raw; $('ans').value = raw; $('ansForm').requestSubmit(); };
+$('ans').addEventListener('input', () => { if (G && G.sug && $('ans').value.trim() !== G.sug.raw) { G.sug = null; hideSug(); } });
+function takeSug() { const s = G.sug; if (!s || G.locked) return; G.sug = null; hideSug(); G.sugUsed = (G.sugUsed || 0) + 1; G.lastSug = s.raw; resolve(s.ans, null, s.raw); }
 function miss(p, raw, m) {
   G.strikes++; drawStrikes(); blip('bad'); const f = $('ansForm'); f.classList.remove('shake'); f.offsetWidth; f.classList.add('shake');
   $('fb').className = 'fb bad'; $('fb').textContent = m.ambiguous ? `“${raw}” could be more than one answer — be more specific.` : `“${raw}” isn't on our list. ${CFG.strikes - G.strikes > 0 ? (CFG.strikes - G.strikes) + ' miss' + (CFG.strikes - G.strikes > 1 ? 'es' : '') + ' left.' : ''}`;
@@ -524,7 +532,7 @@ async function aiCheck(p, raw) {
   if (r.status === 'uncertain') { (G.unsure = G.unsure || []).push({ p: p.id, raw }); return notice(`We couldn't confirm “${raw}” yet — it's been sent for review. No miss counted.`); }
   notice(AI_DOWN ? `Couldn't check “${raw}” — no miss counted. Answer checking is offline, so only listed answers count for the rest of this game.` : `Couldn't check “${raw}” right now — no miss counted. Try another answer.`); }
 async function resolve(ans, why, raw) {
-  if (G.locked) return; G.locked = true; cancelAnimationFrame(timerRAF); $('ans').blur();
+  if (G.locked) return; G.locked = true; cancelAnimationFrame(timerRAF); $('ans').blur(); G.sug = null; hideSug();
   const p = G.prompts[G.round], tier = ans ? dynTier(p, ans) : null, T = tier ? TIERS[tier] : null;
   const cut = tier ? T.cuts[Math.floor(Math.random() * T.cuts.length)] : 'x', abil = tier ? T.abil[cut] : 'Enemy Counter';
   const pts = tier ? T.pts : 0, dealt = tier ? (tier === 'S' ? G.rv : T.pts) : 0, taken = tier ? T.taken : CFG.missDmg;
