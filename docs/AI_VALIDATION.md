@@ -21,7 +21,7 @@ player types an answer
   ├─ rate limits (per player, per IP, global)
   └─ 4. Gemma 4 26B A4B, thinking off, temperature 0, ≤60 output tokens
          yes (confidence ≥ 0.75) → accepted, saved for everyone, rarity capped at B until a person approves
-         no  (confidence ≥ 0.75) → miss, remembered for 7 days (not forever)
+         no  (confidence ≥ 0.9)  → miss, remembered for 7 days (not forever), listed for review
          anything else          → "sent for review", no miss
          timeout / error / rate limit → "couldn't check", no miss
 ```
@@ -76,7 +76,7 @@ git checkout ai-validation
 
 npx supabase login                         # opens the browser once
 npx supabase link --project-ref <REF>      # asks for the database password
-npx supabase db push                       # creates the tables and functions
+npx supabase db push                       # creates the tables, functions and service_role grants
 ```
 
 Make an admin token (a long random password for the review page):
@@ -146,7 +146,7 @@ Set with `npx supabase secrets set NAME=value`, then redeploy (`npx supabase fun
 | `AI_EXTRA_BODY` | per provider | JSON merged into the request; replaces the default "thinking off" switch for that provider |
 | `AI_TIMEOUT_MS` | `2500` | Give up on the model after this long (player gets "couldn't check", no miss) |
 | `AI_MAX_TOKENS` | `60` | Output cap |
-| `AI_ACCEPT_CONF` / `AI_REJECT_CONF` | `0.75` | Confidence needed for an automatic yes / no |
+| `AI_ACCEPT_CONF` / `AI_REJECT_CONF` | `0.75` / `0.9` | Confidence needed for an automatic yes / no (a less-sure "no" becomes "sent for review", no miss) |
 | `NEG_TTL_SECS` | `604800` (7 days) | How long an AI "no" is remembered |
 | `UNSURE_TTL_SECS` | `3600` | How long an AI "unsure" is remembered |
 | `RL_PLAYER_PER_MIN` / `RL_IP_PER_MIN` / `RL_GLOBAL_PER_MIN` | `20` / `40` / `600` | Model-call rate limits (cache hits aren't limited) |
@@ -197,7 +197,7 @@ The apply step refuses to write if any of the 5,069 recorded panel answers would
 Tools: Node 20+ and Bun (https://bun.sh) for tests; Postgres 16 for the SQL test; Python Playwright + Chrome for browser tests. GitHub Actions runs the unit, SQL and benchmark tests on every push (`.github/workflows/test.yml`).
 
 ```bash
-bun test tests/                                  # 39 tests: matcher parity, backend, store, offline tools
+bun test tests/                                  # 58 tests: matcher parity, backend, errors, store, offline tools
 PGHOST=... PGUSER=... bash tests/sql.test.sh     # migration + functions + concurrency + lockdown on real Postgres
 bun tests/dev-server.ts &                        # local backend: in-memory DB + fake model (or AI_API_KEY=... for the real one)
 python3 tests/browser_test.py                    # full game in Chrome against it
@@ -217,9 +217,26 @@ These use a simulated model. Real numbers depend on the provider and region — 
 
 ---
 
+## When checks fail
+A failed check is never a miss for the player ("Couldn't check … right now"). Each failure is recorded with its cause:
+
+| `ff_log.outcome` | Player `reason` | Cause | What to do |
+|---|---|---|---|
+| `err-ai-rate` | `ai-rate-limited` | Provider returned 429 / quota exhausted (retried once first) | Free-tier limits are low; add billing or switch provider (`AI_PROVIDER=openrouter`) |
+| `err-ai-timeout` | `timeout` | No reply within `AI_TIMEOUT_MS` | Raise `AI_TIMEOUT_MS` a little, or use a faster provider/region |
+| `err-ai-http` | `ai-error` | Provider error (5xx retried once; 4xx = bad key/model id/request) | Check the message in the review page / function logs |
+| `err-ai-network` | `ai-error` | Provider unreachable (retried once) | Usually transient |
+| `err-ai-response` | `ai-error` | Provider replied with something that isn't its JSON format | Check `AI_BASE_URL` / provider |
+| *(function logs only)* | `db-error` | Database error, e.g. `42501 permission denied` | Run `npx supabase db push` (grants migration) |
+| `rate` | `rate` | Our own per-player/IP/global limit | Adjust `RL_*` secrets |
+
+The review page shows each failure type separately. Database errors can't be written to the database, so they appear in Supabase → Edge Functions → `ff` → Logs as one JSON line, e.g. `{"at":"validate","kind":"db","status":403,"msg":"db GET /ff_answers HTTP 403 42501: permission denied for table ff_answers"}`. Every logged message passes through redaction: the configured keys, admin token, Supabase keys/JWTs, Google/OpenRouter-style keys, bearer tokens, `key=` query values and connection strings are replaced with `[redacted]`.
+
+`tools/bench-live.mjs` lists unavailable responses with their reason and leaves them out of the hit rate and latency figures.
+
 ## Security notes
 - The model key, the database secret key and the admin token exist only as Supabase function secrets. The browser knows only the function URL.
-- Every table has row-level security on with no policies, and the public roles have no table or function grants: the publishable/anon key can't read or write anything. Only the function touches the database.
+- Every table has row-level security on with no policies, and the public roles have no table, sequence or function grants: the publishable/anon key can't read or write anything. `service_role` (used only inside the function) gets explicit table, sequence and function grants in `20261126010000_service_role_grants.sql`.
 - Player text is untrusted: control characters stripped, length-capped, instruction-like text rejected before the model, sent to the model as a JSON field (never mixed into the instructions), and the reply must match a 3-field schema or it counts as "unsure". The worst a successful injection can do is get one answer accepted — rarity-capped and in the review queue.
 - The server only counts answer keys it recognizes when recording runs, and ignores duplicate run submissions.
 

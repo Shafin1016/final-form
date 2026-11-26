@@ -35,6 +35,6 @@ const handle = makeApp(store, ai, {
   rlIpPerMin: num('RL_IP_PER_MIN', DEFAULTS.rlIpPerMin),
   rlGlobalPerMin: num('RL_GLOBAL_PER_MIN', DEFAULTS.rlGlobalPerMin),
   rlRunsPerHour: num('RL_RUNS_PER_HOUR', DEFAULTS.rlRunsPerHour),
-}, { bg });
+}, { bg, secrets: [secretKey, env('SUPABASE_SERVICE_ROLE_KEY'), env('SUPABASE_SECRET_KEYS'), env('SUPABASE_DB_URL')] });
 
 Deno.serve(handle);

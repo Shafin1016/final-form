@@ -59,12 +59,15 @@ async function load() {
   try {
     const [q, m] = await Promise.all([call('/admin/queue'), call('/admin/metrics?hours=24')]);
     const M = m.metrics || {}, n = k => (M[k] && M[k].n) || 0, lat = k => M[k] && M[k].p50 != null ? Math.round(M[k].p50) + ' / ' + Math.round(M[k].p95) + ' ms' : '—';
-    const lookups = n('bank') + n('cache') + n('neg') + n('dedupe') + n('ai-valid') + n('ai-invalid') + n('ai-uncertain') + n('error') + n('rate');
+    const errKeys = Object.keys(M).filter(k => k === 'error' || k.startsWith('err-')), errs = errKeys.reduce((t, k) => t + n(k), 0);
+    const ERRNAME = { 'err-ai-rate': 'provider rate limit', 'err-ai-timeout': 'model timeout', 'err-ai-http': 'model error', 'err-ai-network': 'provider unreachable', 'err-ai-response': 'bad model reply', 'err-db': 'database', 'err-internal': 'internal', error: 'other' };
+    const lookups = n('bank') + n('cache') + n('neg') + n('dedupe') + n('ai-valid') + n('ai-invalid') + n('ai-uncertain') + errs + n('rate');
     const cached = n('bank') + n('cache') + n('neg') + n('dedupe');
     $('stats').replaceChildren(...[
-      ['Server checks', lookups], ['Answered without the model', lookups ? Math.round(cached / lookups * 100) + '%' : '—'],
+      ['Server checks', lookups], ['Answered without the model', lookups - errs - n('rate') ? Math.round(cached / (lookups - errs - n('rate')) * 100) + '%' : '—'],
       ['Cache p50 / p95', lat('cache')], ['Model p50 / p95', lat('ai-valid') !== '—' ? lat('ai-valid') : lat('ai-invalid')],
-      ['Model calls', n('ai-valid') + n('ai-invalid') + n('ai-uncertain')], ['Errors / rate-limited', n('error') + ' / ' + n('rate')],
+      ['Model calls', n('ai-valid') + n('ai-invalid') + n('ai-uncertain')], ['Failed checks (no miss) / our rate limit', errs + ' / ' + n('rate')],
+      ...errKeys.map(k => ['Failed: ' + (ERRNAME[k] || k), n(k)]),
     ].map(([k, v]) => el('div', { className: 'stat' }, el('b', { textContent: String(v) }), el('span', { textContent: k }))));
     $('nA').textContent = q.answers.length; $('nV').textContent = q.verdicts.length;
     $('ans').replaceChildren(...q.answers.map(a => {

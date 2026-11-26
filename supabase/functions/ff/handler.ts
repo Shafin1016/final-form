@@ -9,6 +9,7 @@ import '../_shared/ff-core.js';
 import { BANK } from '../_shared/bank.js';
 import { askAi, cleanInput, type AiConfig } from './ai.ts';
 import type { Store, Answer } from './store.ts';
+import { classify, redact, OUTCOME, REASON } from './errors.ts';
 
 const C = (globalThis as any).FFCore;
 const BIN = 25, NBINS = 28;
@@ -26,7 +27,7 @@ export type Settings = {
 };
 export const DEFAULTS: Settings = {
   allowedOrigins: ['https://shafin1016.github.io', 'http://localhost:8765'], adminToken: '',
-  acceptConf: 0.75, rejectConf: 0.75, negTtlSecs: 7 * 86400, unsureTtlSecs: 3600, cacheTtlMs: 15000, statsTtlMs: 20000,
+  acceptConf: 0.75, rejectConf: 0.9, negTtlSecs: 7 * 86400, unsureTtlSecs: 3600, cacheTtlMs: 15000, statsTtlMs: 20000,
   rlPlayerPerMin: 20, rlIpPerMin: 40, rlGlobalPerMin: 600, rlRunsPerHour: 60,
 };
 
@@ -40,10 +41,19 @@ export function looksLikeInstructions(raw: string): boolean {
 
 type View = { at: number; rows: Answer[]; keys: Map<string, any>; extraKeys: Map<string, any>; answers: any[]; rejected: Set<string> };
 
-export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Settings> = {}, deps: { fetchFn?: typeof fetch; now?: () => number; bg?: (p: Promise<unknown>) => void } = {}) {
+export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Settings> = {}, deps: { fetchFn?: typeof fetch; now?: () => number; bg?: (p: Promise<unknown>) => void; secrets?: string[]; logger?: (line: string) => void } = {}) {
   const S: Settings = { ...DEFAULTS, ...settings };
   const now = deps.now || (() => Date.now());
-  const bg = deps.bg || ((p: Promise<unknown>) => { p.catch(e => console.warn('bg', e)); });
+  const secrets = [S.adminToken, ai ? ai.apiKey : '', ...(deps.secrets || [])].filter(Boolean);
+  const logger = deps.logger || ((line: string) => console.warn(line));
+  const bg = deps.bg || ((p: Promise<unknown>) => { p.catch(e => logger(JSON.stringify({ at: 'background', ...safeErr(e) }))); });
+  // classify + redact: the function log and ff_log say what failed, never with a key in it
+  function safeErr(e: unknown) { const c = classify(e); return { kind: c.kind, status: c.status, msg: redact(c.msg, secrets) }; }
+  function fail(where: string, pid: string | null, n: string | null, t0: number, e: unknown) {
+    const c = safeErr(e); logger(JSON.stringify({ at: where, prompt: pid, ...c }));
+    if (c.kind !== 'db') bg(store.log(pid, n, OUTCOME[c.kind], elapsed(t0), `${c.status ?? ''} ${c.msg}`.trim()));  // db down: logging to it would fail too
+    return { status: 'unavailable', reason: REASON[c.kind], ms: elapsed(t0) };
+  }
   const PROMPTS = new Map<string, any>();
   for (const b of BANK as any[]) {
     const parsed = C.parseAnswers(b.a);
@@ -74,7 +84,12 @@ export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Set
   const elapsed = (t0: number) => now() - t0;
 
   async function validate(pid: string, rawIn: string, player: string, ip: string) {
-    const t0 = now(), p = PROMPTS.get(pid);
+    const t0 = now();
+    try { return await validateInner(pid, rawIn, player, ip, t0); }
+    catch (e) { return fail('validate', pid, C.norm(cleanInput(rawIn)), t0, e); }  // e.g. database error before the model step
+  }
+  async function validateInner(pid: string, rawIn: string, player: string, ip: string, t0: number) {
+    const p = PROMPTS.get(pid);
     if (!p) return { http: 400, status: 'error', reason: 'unknown prompt' };
     const raw = cleanInput(rawIn), n = C.norm(raw);
     if (!n || n.length > 60) return { status: 'invalid', source: 'input', ms: elapsed(t0) };
@@ -99,12 +114,12 @@ export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Set
     // tier 4: live model, once per prompt+spelling no matter how many players send it at the same moment
     const fk = pid + '|' + n, running = inflight.get(fk);
     if (running) { const r = await running; bg(store.log(pid, n, 'dedupe', elapsed(t0))); return { ...r, deduped: true, ms: elapsed(t0) }; }
-    const job = (async () => {
+    const job = (async () => { try {
       const ok = await Promise.all([store.rateHit('p:' + player, S.rlPlayerPerMin, 60), store.rateHit('ip:' + ip, S.rlIpPerMin, 60), store.rateHit('global', S.rlGlobalPerMin, 60)]);
       if (ok.includes(false)) { bg(store.log(pid, n, 'rate', elapsed(t0))); return { status: 'unavailable', reason: 'rate' }; }
       let out;
       try { out = await askAi(ai, p, raw, deps.fetchFn); }
-      catch (err) { const msg = String((err as Error).message || err); bg(store.log(pid, n, 'error', elapsed(t0), msg)); return { status: 'unavailable', reason: msg.includes('timeout') ? 'timeout' : 'error' }; }
+      catch (err) { return fail('model', pid, n, t0, err); }
       if (out.v === 'yes' && out.c >= S.acceptConf) {
         const name = out.name || raw, key = C.norm(name) || n;
         if (view.rejected.has(key)) { bg(store.log(pid, n, 'ai-invalid', elapsed(t0), 'canonical was rejected in review')); return { status: 'invalid', source: 'review' }; }
@@ -116,7 +131,7 @@ export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Set
           await store.noteVerdict(pid, n, raw, 'uncertain', name, out.c, S.unsureTtlSecs);
           bg(store.log(pid, n, 'ai-uncertain', elapsed(t0), 'matches a rejected answer')); return { status: 'uncertain', source: 'review' };
         }
-        bg(store.log(pid, n, 'ai-valid', elapsed(t0), `${name} c=${out.c} ai=${out.ms}ms`));
+        bg(store.log(pid, n, 'ai-valid', elapsed(t0), `${name} c=${out.c} ai=${out.ms}ms${out.attempts > 1 ? ' retried' : ''}`));
         const st = row && row.status === 'approved' ? 'approved' : 'ai';
         return { status: 'valid', source: 'ai', answer: bank.ans ? { ...pubAnswer(bank.ans, 'ai', true) } : pubAnswer({ key: row.key, name: row.name, tier: row.tier }, st), confidence: out.c };
       }
@@ -127,10 +142,9 @@ export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Set
       // not sure: no strike for the player, and a person decides later
       await store.noteVerdict(pid, n, raw, 'uncertain', out.name || null, out.c, S.unsureTtlSecs);
       bg(store.log(pid, n, 'ai-uncertain', elapsed(t0), `${out.v} c=${out.c} ai=${out.ms}ms`)); return { status: 'uncertain', source: 'ai', confidence: out.c };
-    })();
+    } catch (e) { return fail('validate-save', pid, n, t0, e); } })();   // the job never rejects, so deduped waiters get the same answer
     inflight.set(fk, job);
     try { const r = await job; return { ...r, ms: elapsed(t0) }; }
-    catch (err) { bg(store.log(pid, n, 'error', elapsed(t0), String(err))); return { status: 'unavailable', reason: 'error', ms: elapsed(t0) }; }
     finally { inflight.delete(fk); }
   }
 
@@ -235,7 +249,8 @@ export function makeApp(store: Store, ai: AiConfig | null, settings: Partial<Set
       if (path === '/health') return send({ ok: true, prompts: PROMPTS.size, ai: !!ai, model: ai ? ai.model : null });
       return send({ http: 404, error: 'not found' });
     } catch (e) {
-      console.error(e); return send({ http: 500, status: 'unavailable', error: 'server error' });
+      const c = safeErr(e); logger(JSON.stringify({ at: 'request', ...c }));
+      return send({ http: c.kind === 'db' ? 503 : 500, status: 'unavailable', reason: REASON[c.kind], error: c.kind === 'db' ? 'database unavailable' : 'server error' });
     }
   };
 }

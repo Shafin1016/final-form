@@ -1,6 +1,8 @@
 // Database access through Supabase's REST API (PostgREST), using the service-role key that Supabase
 // injects into edge functions. No client library: plain fetch. Tests swap in store_memory.ts.
 
+import { AppError, redact } from './errors.ts';
+
 export type Answer = { prompt_id: string; key: string; name: string; aliases: string[]; tier: string | null; status: 'ai' | 'approved' | 'rejected'; source: string; hits?: number; confidence?: number | null; model?: string | null; created_at?: string };
 export type Verdict = { prompt_id: string; norm: string; raw: string; verdict: 'invalid' | 'uncertain' | 'claim'; ai_name: string | null; confidence: number | null; count: number; expires_at: string | null; review_status: string; last_at?: string };
 
@@ -28,8 +30,16 @@ export function pgStore(url: string, key: string, fetchFn: typeof fetch = fetch)
   if (key.startsWith('eyJ')) H.Authorization = 'Bearer ' + key;   // legacy JWT service_role key; new sb_secret_ keys go in apikey only
   const q = encodeURIComponent;
   async function call(method: string, path: string, body?: unknown, prefer?: string) {
-    const r = await fetchFn(base + path, { method, headers: prefer ? { ...H, Prefer: prefer } : H, body: body === undefined ? undefined : JSON.stringify(body) });
-    if (!r.ok) throw new Error(`db ${method} ${path.split('?')[0]} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const what = `${method} ${path.split('?')[0]}`;   // table or rpc name only, never the filter values
+    let r: Response;
+    try { r = await fetchFn(base + path, { method, headers: prefer ? { ...H, Prefer: prefer } : H, body: body === undefined ? undefined : JSON.stringify(body) }); }
+    catch (e) { throw new AppError('db', `database unreachable (${what}): ${redact((e as Error).message, [key])}`); }
+    if (!r.ok) {
+      // PostgREST errors look like {"code":"42501","message":"permission denied for table ff_answers",...}
+      const t = await r.text().catch(() => ''); let code = '', msg = t;
+      try { const j = JSON.parse(t); code = j.code || ''; msg = j.message || t; } catch { /* plain text */ }
+      throw new AppError('db', `db ${what} HTTP ${r.status}${code ? ' ' + code : ''}: ${redact(msg, [key]).slice(0, 160)}`, r.status);
+    }
     const t = await r.text(); return t ? JSON.parse(t) : null;
   }
   const rpc = (fn: string, args: unknown) => call('POST', '/rpc/' + fn, args);

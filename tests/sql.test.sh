@@ -8,8 +8,25 @@ psql -q -c "drop database if exists $DB" -c "create database $DB" >/dev/null
 trap 'psql -q -c "drop database if exists $DB" >/dev/null' EXIT
 q() { psql -X -q -t -A -v ON_ERROR_STOP=1 -d "$DB" -c "$1"; }
 for r in anon authenticated service_role; do psql -q -c "do \$\$ begin create role $r nologin; exception when duplicate_object then null; end \$\$" >/dev/null; done
-psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/20261126000000_final_form.sql >/dev/null
 fail=0; ok() { if [ "$2" == "$3" ]; then echo "  ok   $1"; else echo "  FAIL $1: expected [$3] got [$2]"; fail=1; fi; }
+asrole() { psql -X -q -t -A -d "$DB" -c "set role $1; $2" 2>&1 || true; }
+
+echo "migrations"
+psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/20261126000000_final_form.sql >/dev/null
+# regression for 42501: with only the first migration, a role without default privileges can't read ff_answers
+psql -q -c "do \$\$ begin create role svc_nodefaults nologin bypassrls; exception when duplicate_object then null; end \$\$" >/dev/null
+ok "role without grants gets 42501" "$(asrole svc_nodefaults "select count(*) from ff_answers" | grep -c 'permission denied for table ff_answers')" "1"
+for f in $(ls supabase/migrations/*.sql | sort | tail -n +2); do psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null; done
+for f in supabase/migrations/2026112601*.sql; do psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null; done   # re-running is harmless
+ok "all migrations applied (and re-applied) cleanly" "ok" "ok"
+
+echo "service_role can do everything the function does"
+ok "select/insert/update/delete answers" "$(asrole service_role "insert into ff_answers (prompt_id,key,name) values ('t','k','n'); update ff_answers set name='m' where key='k'; select name from ff_answers where key='k'; delete from ff_answers where key='k';" | tr -d '\n')" "m"
+ok "insert log (sequence)" "$(asrole service_role "insert into ff_log (outcome) values ('test') returning outcome" | head -1)" "test"
+ok "insert run via rpc (sequence)" "$(asrole service_role "select ff_record_run('svc', 999, 1, 'daily', 10, 'b', '{}', 0, '[]')")" "t"
+ok "rpc execute" "$(asrole service_role "select ff_rate_hit('svc', 5, 60)::text || (ff_stats(28)->>'n')" )" "true1"
+ok "verdict + answer rpcs" "$(asrole service_role "select ff_note_verdict('c','x','x','claim',null,null,null); select (ff_add_answer('c','y','Y','{y}','ai',null,null)).key; select ff_bump_hit('c','y'); select ff_metrics(1) is not null; select ff_prune();" | grep -v '^$' | tr '\n' ' ')" "y t "
+q "delete from ff_runs where player = 'svc'; delete from ff_bins; delete from ff_counts; delete from ff_verdicts; delete from ff_answers; delete from ff_log; delete from ff_rate"
 
 echo "runs + stats"
 ok "first run recorded"  "$(q "select ff_record_run('u1', 1, 3, 'daily', 420, 'gold', '{}', 16, '[{\"p\":\"consoles\",\"a\":\"ps2\"},{\"p\":\"op\",\"a\":null}]')")" "t"
@@ -48,6 +65,9 @@ for t in ff_answers ff_verdicts ff_runs ff_counts ff_bins ff_rate ff_log; do
 done
 out=$(psql -X -q -t -A -d "$DB" -c "set role anon; select ff_stats(28)" 2>&1 || true); ok "anon rpc denied" "$(echo "$out" | grep -c 'permission denied')" "1"
 out=$(psql -X -q -t -A -d "$DB" -c "set role authenticated; insert into ff_answers (prompt_id,key,name) values ('a','b','c')" 2>&1 || true); ok "authenticated insert denied" "$(echo "$out" | grep -c 'permission denied')" "1"
+out=$(asrole anon "select ff_record_run('a',1,1,'d',1,'r','{}',0,'[]')"); ok "anon rpc write denied" "$(echo "$out" | grep -c 'permission denied')" "1"
+out=$(asrole anon "select nextval('ff_log_id_seq')"); ok "anon sequence denied" "$(echo "$out" | grep -c 'permission denied')" "1"
+ok "no anon/authenticated table grants" "$(q "select count(*) from information_schema.role_table_grants where table_name like 'ff\_%' and grantee in ('anon','authenticated','PUBLIC')")" "0"
 ok "rls on every table" "$(q "select count(*) from pg_class where relname like 'ff\_%' and relkind = 'r' and relrowsecurity")" "7"
 
 [ $fail == 0 ] && echo "SQL: all passed" || { echo "SQL: FAILURES"; exit 1; }
