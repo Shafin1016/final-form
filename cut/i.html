@@ -38,7 +38,7 @@ canvas{display:block;width:100%;height:auto;background:#000}
 (() => {
 'use strict';
 const W = 960, H = 540, G = 438;
-const cv = document.getElementById('c'); const DPR = Math.min(window.EMBED ? 1.5 : 2, devicePixelRatio || 1);
+const cv = document.getElementById('c'); const DPR = window.EMBED ? Math.min(1.5, Math.max(.75, (devicePixelRatio || 1) * Math.min(1, (innerWidth || (screen && screen.width) || 960) / 960))) : Math.min(2, devicePixelRatio || 1);
 cv.width = W * DPR; cv.height = H * DPR; const ctx = cv.getContext('2d');
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, prog = (t, a, b) => clamp((t - a) / (b - a));
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647; const rand = (a, b) => a + rnd() * (b - a); const pick = a => a[(rnd() * a.length) | 0];
@@ -597,7 +597,7 @@ const bg = (() => { const c = document.createElement('canvas'); c.width = (W + 1
   for (let i = 0; i < 22; i++) { const x = rand(-60, W + 60), y = G + rand(2, 70), r = rand(2, 6) * (1 + (y - G) / 60); g.fillStyle = '#2c2f33'; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x - r * .4, y - r * .9); g.lineTo(x + r * .7, y - r * .6); g.lineTo(x + r, y); g.closePath(); g.fill(); g.fillStyle = 'rgba(160,165,170,.35)'; g.beginPath(); g.moveTo(x - r * .4, y - r * .9); g.lineTo(x + r * .7, y - r * .6); g.lineTo(x + r * .2, y - r * .3); g.closePath(); g.fill(); }
   for (let i = 0; i < 10; i++) { const y = G + 4 + i * 5, w = 54 - i * 4; g.fillStyle = `rgba(235,238,242,${.2 - i * .016})`; g.fillRect(660 - w / 2, y, w, 1); }
   return c; })();
-const vig = (() => { const c = document.createElement('canvas'); c.width = W * DPR; c.height = H * DPR; const g = c.getContext('2d'); g.scale(DPR, DPR); const r = g.createRadialGradient(W / 2, H / 2, H * .4, W / 2, H / 2, H * 1.05); r.addColorStop(0, 'rgba(0,0,0,0)'); r.addColorStop(1, 'rgba(0,0,0,.66)'); g.fillStyle = r; g.fillRect(0, 0, W, H); return c; })();
+const vig = (() => { const VD = window.EMBED ? Math.min(DPR, .5) : DPR; const c = document.createElement('canvas'); c.width = W * VD; c.height = H * VD; const g = c.getContext('2d'); g.scale(VD, VD); const r = g.createRadialGradient(W / 2, H / 2, H * .4, W / 2, H / 2, H * 1.05); r.addColorStop(0, 'rgba(0,0,0,0)'); r.addColorStop(1, 'rgba(0,0,0,.66)'); g.fillStyle = r; g.fillRect(0, 0, W, H); return c; })();
 
 const PAL = { amber: { col: '#e3a24f', back: '#a06a2a', lid: '#2a1606' }, ink: { col: '#1c1e27', back: '#12131a', rim: '#7d86a3', lid: '#e8ecff' }, cobalt: { col: '#4f72ea', back: '#3048a4', lid: '#0c1230' } };
 const HERO = { col: '#17181d', back: '#0c0c10', lid: '#9aa3b8', w: 5.0 }, RIVAL = { col: '#b13a33', back: '#76231f', w: 5.4, fists: true };
