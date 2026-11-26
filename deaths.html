@@ -37,8 +37,8 @@ const R = [
 const list = document.getElementById('list');
 for (const [id, name, desc] of R) {
   const c = document.createElement('div'); c.className = 'card';
-  c.innerHTML = `<div class="head"><b>${name}</b><span>${desc}</span></div><div class="frame"><iframe src="cut/k.html?embed=1&id=k&rival=${id}&v=202611261740" title="${name} death" allow="autoplay"></iframe></div><div class="btns"><button class="btn" data-play>Play</button></div>`;
-  const f = c.querySelector('iframe'), audio = new Audio(`cut/snd/k_${id}.mp3?v=202611261740`); audio.preload = 'auto';
+  c.innerHTML = `<div class="head"><b>${name}</b><span>${desc}</span></div><div class="frame"><iframe src="cut/k.html?embed=1&id=k&rival=${id}&v=202611261745" title="${name} death" allow="autoplay"></iframe></div><div class="btns"><button class="btn" data-play>Play</button></div>`;
+  const f = c.querySelector('iframe'), audio = new Audio(`cut/snd/k_${id}.mp3?v=202611261745`); audio.preload = 'auto';
   let raf = 0;
   window.addEventListener('message', e => { if (e.source !== f.contentWindow) return; const m = e.data || {};
     if (m.ff === 'ready') f.contentWindow.postMessage({ ff: 'still', t: 0.05, rival: id }, '*');

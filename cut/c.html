@@ -696,8 +696,8 @@ const GPAL = { skin: '#e2b33c', skinS: '#a7781a', skinL: '#f6d670', back: '#c39a
 function drawStand(g, J, a, pal = SPAL, glow = '#b29bff', wisp = '#5f43d8') { if (a <= 0) return; g.save();
   const P = [], base = J.hip; for (let j = 0; j <= 10; j++) { const u = j / 10; P.push([base[0] - J.f * 26 * u * u - Math.sin(now * 3 + u * 4) * 8 * u, base[1] + 8 + 120 * u]); }
   const Tw = tube(P, [[0, 34], [.4, 26], [1, 2]], J.s / 1.3);
-  g.globalAlpha = .22 * a; tubePath(g, tube(P, [[0, 46], [.4, 36], [1, 4]], J.s / 1.3)); g.fillStyle = glow; g.fill(); drawRival(g, J, { flat: glow, ex: 9, noLegs: true });
-  g.globalAlpha = .6 * a; tubePath(g, Tw); g.fillStyle = wisp; g.fill(); g.globalAlpha = .82 * a; drawRival(g, J, { pal, ink: 2.2, noLegs: true }); g.globalAlpha = a;
+  g.globalAlpha = .22 * a; tubePath(g, tube(P, [[0, 46], [.4, 36], [1, 4]], J.s / 1.3)); g.fillStyle = glow; g.fill(); drawRivalOld(g, J, { flat: glow, ex: 9, noLegs: true });
+  g.globalAlpha = .6 * a; tubePath(g, Tw); g.fillStyle = wisp; g.fill(); g.globalAlpha = .82 * a; drawRivalOld(g, J, { pal, ink: 2.2, noLegs: true }); g.globalAlpha = a;
   const ex2 = J.head[0] + 3.4 * J.s * J.f, ey = J.head[1] - 1.4 * J.s; g.strokeStyle = '#f3eeff'; g.lineWidth = 2.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(ex2 - 2.4 * J.s * J.f, ey + .6 * J.s); g.lineTo(ex2 + 4 * J.s * J.f, ey - .3 * J.s); g.stroke(); g.restore(); }
 // a blur of phantom fists from the spirit's shoulder into the target
 function ghostFists(g, from, tgt, n, a, dir = 1, cols = ['#5f43d8', '#8a73f0', '#7d5cff', 'rgba(30,12,90,.7)', '#c9b8ff'], spread = [36, 80], salt = 131) { const sv = seed; seed = (Math.floor(now * 60) * salt) % 2147483646 + 1; g.save(); g.lineCap = 'round';

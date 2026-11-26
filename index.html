@@ -442,7 +442,7 @@ let soundOn = localStorage.getItem('ff_sound') !== 'off', AC = null;
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 // one preloaded audio element per cutscene, so sound starts the instant a cutscene does
 // bump when cutscenes or their sounds change, so browsers fetch the new files instead of a cached copy
-const CUT_V = '202611261740';
+const CUT_V = '202611261745';
 const AUDS = {};
 function cutAudio(id, url) { if (AUDS[id]) return AUDS[id]; const el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', ''); el.src = url + (url.includes('?') ? '&' : '?') + 'v=' + CUT_V; try { el.load(); } catch (e) { } AUDS[id] = el; return el; }
 function unlockAudio() { try { AUDIO.src = SILENT; AUDIO.play().then(() => AUDIO.pause()).catch(() => { }); } catch (e) { }
