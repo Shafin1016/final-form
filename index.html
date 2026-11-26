@@ -161,6 +161,19 @@ button{font-family:inherit;cursor:pointer}
 .recap td.n{font:700 11px Inter;color:var(--muted);width:24px}
 .recap .qq{color:#d8d6cf}.recap .qq small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 .recap .aa{font-weight:600}
+/* Mythic (S): moving rainbow + light sweep + glow, and sparkles on the reveal */
+.myth{background:linear-gradient(115deg,#ff7eb6,#ffb86b,#fff07a,#7dffb2,#6fd8ff,#a98bff,#ff7eb6)!important;background-size:220px 100%!important;animation:rainbow 2.6s linear infinite;border-color:transparent!important;color:#0a0a0c!important;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(255,170,230,.55),0 0 34px rgba(120,210,255,.35)}
+.myth::after{content:'';position:absolute;inset:-2px;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.9) 48%,rgba(255,255,255,.2) 54%,transparent 70%);background-size:260% 100%;animation:mythShine 2.4s ease-in-out infinite;mix-blend-mode:soft-light;pointer-events:none}
+.mythT{background:linear-gradient(90deg,#ff7eb6,#ffb86b,#fff07a,#7dffb2,#6fd8ff,#a98bff,#ff7eb6);background-size:160px 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;animation:rainbow 2.8s linear infinite;filter:drop-shadow(0 0 10px rgba(255,190,240,.45))}
+@keyframes rainbow{from{background-position:0 50%}to{background-position:-220px 50%}}
+.mythT{animation-name:rainbowT}@keyframes rainbowT{from{background-position:0 50%}to{background-position:-160px 50%}}
+@keyframes mythShine{0%,15%{background-position:130% 0}70%,100%{background-position:-130% 0}}
+.tierbig.myth{transform:scale(1.08);box-shadow:0 0 22px rgba(255,170,230,.75),0 0 60px rgba(120,210,255,.5),0 0 110px rgba(255,240,120,.25)}
+.reveal{position:relative}.reveal.myth-on{border-radius:16px}
+.spark{position:absolute;width:10px;height:10px;pointer-events:none;z-index:3;background:#fff;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);animation:twinkle 1.6s ease-in-out infinite;filter:drop-shadow(0 0 6px #fff)}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.2) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.6;transform:scale(.7) rotate(70deg)}}
+.float.mythT{font-size:42px}
+@media (prefers-reduced-motion:reduce){.myth,.mythT,.myth::after,.spark{animation:none}}
 .tc{display:inline-flex;width:26px;height:26px;border-radius:7px;align-items:center;justify-content:center;font:800 14px "Shippori Mincho B1",serif;color:#0a0a0c}
 .recap .pp{text-align:right;font:800 13px Inter;white-space:nowrap}
 .recap .pct{color:var(--muted);font-size:11px;font-weight:500;display:block}
@@ -288,6 +301,16 @@ const TIERS = {
   E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 15, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
 };
 const ORDER = ['S', 'A', 'B', 'C', 'D', 'E'];
+const MY = k => k === 'S' ? ' myth' : '', MYT = k => k === 'S' ? ' mythT' : '';
+// Mythic reveal: rainbow badge and title, plus sparkles that keep twinkling around the badge
+function mythify(tier) {
+  const on = tier === 'S', rv = $('reveal');
+  $('rvTier').classList.toggle('myth', on); $('rvT1').classList.toggle('mythT', on); $('rvT2').classList.toggle('mythT', on); rv.classList.toggle('myth-on', on);
+  rv.querySelectorAll('.spark').forEach(x => x.remove()); if (!on) return;
+  const b = $('rvTier'), cx = b.offsetLeft + b.offsetWidth / 2, cy = b.offsetTop + b.offsetHeight / 2;
+  for (let i = 0; i < 14; i++) { const sp = document.createElement('i'), a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 22, sz = 6 + Math.random() * 10;
+    sp.className = 'spark'; sp.style.cssText = `left:${cx + Math.cos(a) * r - sz / 2}px;top:${cy + Math.sin(a) * r * .85 - sz / 2}px;width:${sz}px;height:${sz}px;animation-delay:${(Math.random() * 1.6).toFixed(2)}s;animation-duration:${(1.2 + Math.random()).toFixed(2)}s;background:${['#fff', '#fff07a', '#ffb6e1', '#9be7ff'][i % 4]}`;
+    rv.appendChild(sp); } }
 // rank bands (tuned from playtests)
 const RANKS = [
   { key: 'bronze', name: 'Bronze', min: 0, c: 'conic-gradient(from 210deg,#6b3d1f,#e5a774,#8b5430,#f4c99f,#7a4626,#d9955f,#6b3d1f)', i: 'radial-gradient(circle at 35% 30%,#f0bd8c,#a8693b 55%,#6b3d1f)', t: 'linear-gradient(90deg,#c98652,#f6cfa5,#b0703e)', ink: '#4a2610' },
@@ -435,7 +458,7 @@ $('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); }
 /* ================= HOME ================= */
 $('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 $('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
-$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b style="color:${T.col}">${k}</b><span class="nm">${T.name}<small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
 $('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
 const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
@@ -460,7 +483,7 @@ function setHP(instant) { const h = clamp(G.hp / CFG.hp), v = clamp(G.rv / CFG.r
   $('hpTxt').textContent = `${Math.max(0, G.hp)} / ${CFG.hp}`; $('rvTxt').textContent = `${Math.max(0, G.rv)} / ${CFG.rivalHP}`; }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
+function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done${MY(r.tier)}" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
 function nextRound(first) {
   if (G.round >= CFG.rounds || G.hp <= 0) return endGame();
   const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; G.sug = null; G.sugSkip = null; G.lastSug = null; hideSug(); $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
@@ -537,7 +560,7 @@ async function resolve(ans, why, raw) {
   const cut = tier ? T.cuts[Math.floor(Math.random() * T.cuts.length)] : 'x', abil = tier ? T.abil[cut] : 'Enemy Counter';
   const pts = tier ? T.pts : 0, dealt = tier ? (tier === 'S' ? G.rv : T.pts) : 0, taken = tier ? T.taken : CFG.missDmg;
   // reveal panel
-  $('askView').style.display = 'none'; $('reveal').classList.add('on'); const tb = $('rvTier'); tb.textContent = tier || '✕'; tb.style.background = tier ? T.col : 'var(--X)';
+  $('askView').style.display = 'none'; $('reveal').classList.add('on'); const tb = $('rvTier'); tb.textContent = tier || '✕'; tb.style.background = tier ? T.col : 'var(--X)'; mythify(tier);
   $('rvT1').textContent = tier ? `${T.name} · ${abil}` : (why === 'time' ? "Time's up" : 'Out of guesses');
   $('rvT2').textContent = tier ? ans.name : 'No attack';
   $('rvT3').textContent = tier ? `${tier === 'S' ? 'Instant K.O.' : dealt + ' damage'}${taken ? ` · costs you ${taken} HP` : ''} · +${pts} points` : `The rival counterattacks for ${taken} HP.`;
@@ -548,7 +571,7 @@ async function resolve(ans, why, raw) {
   await playCut(cut, pts);
   // apply results after the cutscene
   G.score += pts; G.hp -= taken; G.rv -= dealt; $('scoreTxt').textContent = G.score; setHP();
-  if (pts) { const fl = document.createElement('div'); fl.className = 'float'; fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
+  if (pts) { const fl = document.createElement('div'); fl.className = 'float' + MYT(tier); fl.textContent = '+' + pts; fl.style.color = T.col; $('stage').appendChild(fl); setTimeout(() => fl.remove(), 1600); blip('pts'); }
   let note = '';
   if (G.rv <= 0) { G.kos++; G.rvN++; note = 'ko'; await banner('K.O.', `${foe(G.rvN - 1).name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP(); if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } else showBackdrop(); }
   if (G.hp <= 0) { await banner('DEFEATED', 'Your HP hit zero'); }
@@ -608,7 +631,7 @@ function renderResults(run, all, where) {
   const S = all ? all.stats : emptyStats(), n = Math.round(S.n), mb = Math.min(NBINS - 1, Math.floor(run.score / BIN)), below = S.bins.slice(0, mb).reduce((a, b) => a + b, 0), same = S.bins[mb] || 0;
   const pct = n > 1 ? Math.round(clamp((below + Math.max(0, same - 1) / 2) / (n - 1)) * 100) : null;
   const hits = run.ans.filter(a => a.t).length, best = run.ans.reduce((b, a) => a.t && (!b || ORDER.indexOf(a.t) < ORDER.indexOf(b)) ? a.t : b, null);
-  $('resSub').innerHTML = `${hits}/7 answers landed${best ? ` · best form <b style="color:${TIERS[best].col}">${TIERS[best].name}</b>` : ''}${run.kos ? ` · <b>${run.kos}</b> rival${run.kos > 1 ? 's' : ''} K.O.'d` : ''}` + (all ? (pct != null ? `<br>You beat <b>${pct}%</b> of ${n - 1} other run${n - 1 === 1 ? '' : 's'}.` : `<br>You're the first run on the board.`) : '<br><span style="color:var(--muted)">Loading the leaderboard…</span>');
+  $('resSub').innerHTML = `${hits}/7 answers landed${best ? ` · best form <b class="${MYT(best)}" style="color:${TIERS[best].col}">${TIERS[best].name}</b>` : ''}${run.kos ? ` · <b>${run.kos}</b> rival${run.kos > 1 ? 's' : ''} K.O.'d` : ''}` + (all ? (pct != null ? `<br>You beat <b>${pct}%</b> of ${n - 1} other run${n - 1 === 1 ? '' : 's'}.` : `<br>You're the first run on the board.`) : '<br><span style="color:var(--muted)">Loading the leaderboard…</span>');
   $('nextFill').style.background = (next || rank).t; requestAnimationFrame(() => { $('nextFill').style.width = (next ? clamp((run.score - rank.min) / (next.min - rank.min)) * 100 : 100) + '%'; });
   $('nextTxt').textContent = next ? `${next.min - run.score} points to ${next.name}` : 'Top rank reached';
   $('histN').textContent = n.toLocaleString(); window.__histBins = S.bins; drawHist(S.bins, run.score);
@@ -616,7 +639,7 @@ function renderResults(run, all, where) {
   const P = id => PROMPTS.find(p => p.id === id);
   $('recap').innerHTML = run.ans.map((a, i) => { const p = P(a.p), T = a.t ? TIERS[a.t] : null, tot = S.pn[a.p] || 0, cnt = a.a ? ((S.ans[a.p] || {})[a.a] || 0) : 0;
     const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.key !== a.a && !x.ai && ['S', 'A'].includes(dynTier(p, x))).sort((x, y) => (shareOf(p.id, x.key) || 0) - (shareOf(p.id, y.key) || 0) || 'SABCDE'.indexOf(x.tier) - 'SABCDE'.indexOf(y.tier)).slice(0, 3).map(x => x.name);
-    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName || '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
+    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName ? (a.t === 'S' ? `<span class="mythT">${ansName}</span>` : ansName) : '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc${T ? MY(a.t) : ''}" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
   $('recap').querySelectorAll('.claim').forEach(b => b.onclick = () => { if (b.classList.contains('on')) return; const raw = b.dataset.raw, pid = b.dataset.p; addClaim(pid, raw); run.claims = run.claims || []; if (!run.claims.some(c => c.p === pid && c.raw === raw)) run.claims.push({ p: pid, raw }); b.classList.add('on'); b.textContent = 'Flagged ✓'; Store.patch(run); toast('Thanks — flagged for review'); });
   $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : API ? 'Scores are saved on this device only — the score server could not be reached.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
   window.__resultsReady = !!all;
@@ -642,7 +665,7 @@ addEventListener('resize', () => { if ($('results').classList.contains('on') && 
 
 /* ================= BOOT ================= */
 mountCuts(); placeHero(); loadProgress();
-window.__ff = { PROMPTS, dailySet, pickSet, rivalSay: (...a) => rivalSay(...a), foe: n => foe(n), playCut: (...a) => playCut(...a), match, norm, rankOf, RANKS, TIERS, state: () => G, audT: () => CUR ? [CUR.currentTime, CUR.paused] : null };
+window.__ff = { mythify, drawTrack, PROMPTS, dailySet, pickSet, rivalSay: (...a) => rivalSay(...a), foe: n => foe(n), playCut: (...a) => playCut(...a), match, norm, rankOf, RANKS, TIERS, state: () => G, audT: () => CUR ? [CUR.currentTime, CUR.paused] : null };
 })();
 </script>
 </body>
