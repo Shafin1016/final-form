@@ -996,24 +996,24 @@ S Kid Dracula
 S Castlevania: The Adventure ReBirth | adventure rebirth` },
 
 { id: 'fire-emblem', lvl: 7, cat: 'Video games', src: 'Fire Emblem', q: 'Name a Fire Emblem game', a: `
-E Fire Emblem: Three Houses | three houses | fe3h | 3h
-E Fire Emblem Awakening | awakening
-D Fire Emblem Engage | engage
-D Fire Emblem Fates | fates | birthright | conquest | revelation
+E Fire Emblem: Three Houses | three houses | fe3h | 3h | fire emblem 16 | fe16
+E Fire Emblem Awakening | awakening | fire emblem 13 | fe13
+D Fire Emblem Engage | engage | fire emblem 17 | fe17
+D Fire Emblem Fates | fates | birthright | conquest | revelation | fire emblem 14 | fe14
 C Fire Emblem (GBA) | blazing blade | blazing sword | fire emblem 7 | fe7
-C Fire Emblem: The Sacred Stones | sacred stones
-C Fire Emblem: Path of Radiance | path of radiance
+C Fire Emblem: The Sacred Stones | sacred stones | fire emblem 8 | fe8
+C Fire Emblem: Path of Radiance | path of radiance | fire emblem 9 | fe9
 C Fire Emblem Heroes | feh | heroes
-B Fire Emblem: Radiant Dawn | radiant dawn
-B Fire Emblem Echoes: Shadows of Valentia | shadows of valentia | echoes
+B Fire Emblem: Radiant Dawn | radiant dawn | fire emblem 10 | fe10
+B Fire Emblem Echoes: Shadows of Valentia | shadows of valentia | echoes | fire emblem 15 | fe15
 B Fire Emblem Warriors | fire emblem warriors three hopes | three hopes
-B Fire Emblem: Genealogy of the Holy War | genealogy of the holy war | genealogy
-B Fire Emblem: The Binding Blade | binding blade | sword of seals
-A Fire Emblem: Shadow Dragon | shadow dragon | shadow dragon and the blade of light | the first fire emblem
-A Fire Emblem: Mystery of the Emblem | mystery of the emblem
-A Fire Emblem: New Mystery of the Emblem | new mystery of the emblem | new mystery
-A Fire Emblem Gaiden | gaiden
-A Fire Emblem: Thracia 776 | thracia 776 | thracia
+B Fire Emblem: Genealogy of the Holy War | genealogy of the holy war | genealogy | fire emblem 4 | fe4
+B Fire Emblem: The Binding Blade | binding blade | sword of seals | fire emblem 6 | fe6
+A Fire Emblem: Shadow Dragon | shadow dragon | shadow dragon and the blade of light | the first fire emblem | fire emblem 1 | fe1 | fire emblem 11 | fe11
+A Fire Emblem: Mystery of the Emblem | mystery of the emblem | fire emblem 3 | fe3
+A Fire Emblem: New Mystery of the Emblem | new mystery of the emblem | new mystery | fire emblem 12 | fe12
+A Fire Emblem Gaiden | gaiden | fire emblem 2 | fe2
+A Fire Emblem: Thracia 776 | thracia 776 | thracia | fire emblem 5 | fe5
 S Fire Emblem: Fortune's Weave | fortune's weave | fortunes weave
 S BS Fire Emblem: Archanea Saga | archanea saga | bs fire emblem
 B Fire Emblem Warriors | warriors | fire emblem warriors three hopes` },

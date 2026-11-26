@@ -37,15 +37,19 @@
     for (let i = 1; i <= la; i++) { const cur = [i]; let best = i; for (let j = 1; j <= lb; j++) { const c = a[i - 1] === b[j - 1] ? 0 : 1; let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c); if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1); cur.push(v); if (v < best) best = v; } if (best > max) return max + 1; prev2 = prev; prev = cur; } return prev[lb]; }
 
   // exact alias -> small typo -> known answer inside a longer phrase -> unique short form
+  // sequel numbers must agree for any match that isn't exact: "Persona 4" is not "Persona 3", "Mega Man X5" is not "X4"
+  const digits = s => (s.match(/\d+/g) || []).map(Number).sort((a, b) => a - b).join(',');
   function matchKeys(keys, raw) { const k = norm(raw); if (!k) return { none: true };
     if (keys.has(k)) return { ans: keys.get(k) };
-    let best = 9, hits = new Set(); for (const [key, ans] of keys) { if (key.length < 5) continue; const tol = key.length <= 7 ? 1 : 2, d = osa(k, key, tol); if (d <= tol) { if (d < best) { best = d; hits = new Set([ans]); } else if (d === best) hits.add(ans); } }
+    // (a listed series with no number, like "Tekken", still accepts "Tekken 5")
+    const dk = digits(k), sameNum = key => { const d = digits(key); return !d || !dk || d === dk; };
+    let best = 9, hits = new Set(); for (const [key, ans] of keys) { if (key.length < 5 || !sameNum(key)) continue; const tol = key.length <= 7 ? 1 : 2, d = osa(k, key, tol); if (d <= tol) { if (d < best) { best = d; hits = new Set([ans]); } else if (d === best) hits.add(ans); } }
     if (hits.size === 1) return { ans: [...hits][0], fuzzy: true }; if (hits.size > 1) return { ambiguous: true };
     const toks = (raw || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ').split(/[^a-z0-9]+/).filter(Boolean), spans = new Set();
     for (let i = 0; i < toks.length; i++) { let acc = ''; for (let j = i; j < toks.length; j++) { acc += toks[j]; spans.add(acc); } }
-    let bl = 0, cands = new Set(); for (const [key, ans] of keys) { if (key.length < 4 || key.length < k.length * 0.25 || !spans.has(key)) continue; if (key.length > bl) { bl = key.length; cands = new Set([ans]); } else if (key.length === bl) cands.add(ans); }
+    let bl = 0, cands = new Set(); for (const [key, ans] of keys) { if (key.length < 4 || key.length < k.length * 0.25 || !spans.has(key) || !sameNum(key)) continue; if (key.length > bl) { bl = key.length; cands = new Set([ans]); } else if (key.length === bl) cands.add(ans); }
     if (cands.size === 1) return { ans: [...cands][0], fuzzy: true }; if (cands.size > 1) return { ambiguous: true };
-    if (k.length >= 6) { const pre = new Set(); for (const [key, ans] of keys) if (key.startsWith(k) && k.length >= key.length * 0.5) pre.add(ans); if (pre.size === 1) return { ans: [...pre][0], fuzzy: true }; if (pre.size > 1) return { ambiguous: true }; }
+    if (k.length >= 6) { const pre = new Set(); for (const [key, ans] of keys) if (key.startsWith(k) && k.length >= key.length * 0.5 && sameNum(key)) pre.add(ans); if (pre.size === 1) return { ans: [...pre][0], fuzzy: true }; if (pre.size > 1) return { ambiguous: true }; }
     return { none: true }; }
 
   // hand-written bank first; shared validated answers only if the bank has nothing

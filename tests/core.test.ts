@@ -34,6 +34,16 @@ test('extra answers: matched only after the bank, unreviewed ones are capped', (
   expect(C.match(p, 'Playstaton 2').ans.name).toBe('PlayStation 2');
 });
 
+test('sequel numbers must agree for loose matches (from a real play report)', () => {
+  const m = (id: string, raw: string) => { const r = C.match(PROMPTS.find((x: any) => x.id === id), raw); return r.ans ? r.ans.name : r.ambiguous ? 'AMB' : null; };
+  expect(m('fire-emblem', 'fire emblem 2')).toBe('Fire Emblem Gaiden');      // was Fire Emblem (GBA) via "fire emblem 7"
+  expect(m('fire-emblem', 'fe13')).toBe('Fire Emblem Awakening');
+  expect(m('fire-emblem', 'fire emblem 18')).toBe(null);
+  expect(m('ps1-games', 'mega man x5')).toBe(null);                          // was Mega Man X4
+  expect(m('persona-games', 'persona 7')).toBe(null);
+  expect(m('fighting-games', 'tekken 5')).toBe('Tekken');                     // a listed series still takes its sequels
+});
+
 describe('"Did you mean …?" suggestions', () => {
   const P = (id: string) => { const p = PROMPTS.find((x: any) => x.id === id); return { ...p, answers: p.answers.slice(), _sug: null }; };
   const sug = (id: string, raw: string) => { const p = P(id); return C.match(p, raw).ans ? 'MATCHED' : (C.suggest(p, raw) || { name: null }).name; };

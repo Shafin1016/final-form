@@ -570,14 +570,15 @@ function buildReport() { const runs = Store.local(), P = id => PROMPTS.find(p =>
       lines.push(`  R${j + 1} [${a.p}] ${a.t ? a.t + ' · ' + nm + (a.r && a.r !== nm ? ` (typed "${a.r}"${a.sug ? ', took suggestion' : ''})` : '') : 'no answer'}${a.miss && a.miss.length ? ' · rejected: ' + a.miss.map(m => `"${m}"`).join(', ') : ''}`); });
     if (r.claims && r.claims.length) lines.push('  FLAGGED: ' + r.claims.map(c => `[${c.p}] "${c.raw}"`).join(', '));
     if (r.unsure && r.unsure.length) lines.push('  SENT FOR REVIEW (AI unsure): ' + r.unsure.map(c => `[${c.p}] "${c.raw}"`).join(', '));
-    if (r.aiErr && r.aiErr.length) lines.push('  ANSWER CHECK FAILED: ' + r.aiErr.join(', ')); });
+    if (r.aiErr && r.aiErr.length) lines.push('  ANSWER CHECK FAILED: ' + r.aiErr.join(', '));
+    if (r.check) lines.push('  answer checking: ' + (r.check === 'on' ? 'on (unlisted guesses were checked by the AI)' : 'OFF (backend unreachable — unlisted guesses were plain misses)')); });
   return lines.join('\n'); }
 function openReport() { $('repTxt').value = buildReport(); $('repModal').classList.add('on'); }
 
 /* ================= RESULTS ================= */
 async function endGame() {
   G.over = true; const rank = rankOf(G.score);
-  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.sug) o.sug = 1; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice(); if (G.aiErr && G.aiErr.length) run.aiErr = G.aiErr.slice();
+  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.sug) o.sug = 1; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice(); if (G.aiErr && G.aiErr.length) run.aiErr = G.aiErr.slice(); if (API) run.check = AI_DOWN ? 'off' : 'on';
   if (Q.get('who')) run.who = Q.get('who');
   if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
   window.__lastRun = run;
