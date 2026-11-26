@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Final Form · Rival deaths preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Shippori+Mincho+B1:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080b;--ink:#ecebe6;--muted:#8a8984;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 60px}
+h1{font:800 26px "Shippori Mincho B1",Georgia,serif;letter-spacing:.3em;margin:0 0 6px}p.sub{color:var(--muted);margin:0 0 26px;font-size:14px}
+.card{background:#0e1016;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:22px;box-shadow:0 30px 70px -40px #000}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.head b{font:800 20px "Shippori Mincho B1",Georgia,serif;letter-spacing:.08em}.head span{color:var(--muted);font-size:13px}
+.frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.btns{display:flex;gap:10px;margin-top:12px}
+.btn{border:0;border-radius:999px;padding:12px 22px;font:700 11px Inter;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;background:linear-gradient(180deg,#fbfaf6,#d9d6cd);color:#0a0a0c}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--ink);border:1px solid var(--line2)}
+a{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>RIVAL DEATHS</h1>
+  <p class="sub">Preview of the K.O. scene for each rival. Press play (sound on). In the game it plays right after the finishing hit, then the next rival leaps in. <a href="./">Back to the game</a></p>
+  <div id="list"></div>
+</main>
+<script>
+const R = [
+  ['oni', 'Oni Brute', 'Staggers, drops to a knee, falls face-down and crumbles to ash'],
+  ['warden', 'Iron Warden', 'Armour cracks white-hot, topples like a statue and shatters'],
+  ['hollow', 'The Hollow', 'Flickers, rises and dissolves into pale wisps'],
+];
+const list = document.getElementById('list');
+for (const [id, name, desc] of R) {
+  const c = document.createElement('div'); c.className = 'card';
+  c.innerHTML = `<div class="head"><b>${name}</b><span>${desc}</span></div><div class="frame"><iframe src="cut/k.html?embed=1&id=k&rival=${id}" title="${name} death" allow="autoplay"></iframe></div><div class="btns"><button class="btn" data-play>Play</button></div>`;
+  const f = c.querySelector('iframe'), audio = new Audio(`cut/snd/k_${id}.mp3`); audio.preload = 'auto';
+  let raf = 0;
+  window.addEventListener('message', e => { if (e.source !== f.contentWindow) return; const m = e.data || {};
+    if (m.ff === 'ready') f.contentWindow.postMessage({ ff: 'still', t: 0.05, rival: id }, '*');
+    if (m.ff === 'done') { cancelAnimationFrame(raf); audio.pause(); c.querySelector('[data-play]').textContent = 'Replay'; } });
+  c.querySelector('[data-play]').onclick = async () => {
+    for (const a of document.querySelectorAll('audio')) a.pause();
+    try { audio.currentTime = 0; await audio.play(); } catch (e) { }
+    f.contentWindow.postMessage({ ff: 'play', pts: null, rival: id }, '*');
+    const clock = () => { f.contentWindow.postMessage({ ff: 'clock', t: audio.currentTime, paused: audio.paused }, '*'); raf = requestAnimationFrame(clock); }; cancelAnimationFrame(raf); raf = requestAnimationFrame(clock);
+  };
+  list.appendChild(c);
+}
+</script>
+</body>
+</html>
