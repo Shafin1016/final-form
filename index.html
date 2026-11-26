@@ -179,6 +179,17 @@ button{font-family:inherit;cursor:pointer}
 .recap .pct{color:var(--muted);font-size:11px;font-weight:500;display:block}
 .rare{font-size:11px;color:var(--muted);margin-top:4px}.rare em{font-style:normal;color:#e6e4dd}
 .res-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.chal{margin:18px 0 0;padding:16px 18px;border:1px solid rgba(255,211,92,.45);border-radius:14px;background:linear-gradient(180deg,rgba(40,33,14,.92),rgba(14,16,22,.92));backdrop-filter:blur(6px);max-width:520px;box-shadow:0 16px 40px -20px #000}
+.chal small{display:block;font:700 10px Inter;letter-spacing:.24em;text-transform:uppercase;color:#ffd35c;margin-bottom:6px}
+.chal .ct{font:700 17px Inter;margin-bottom:10px}.chal .ct b{color:#ffd35c}
+.chal .chips{display:flex;gap:6px;margin-bottom:12px}.chal .chips span{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font:800 14px "Shippori Mincho B1",serif;color:#0a0a0c}
+.chal .chips span.x{background:#3b2226;color:#ff8a7a}
+.share-prev{display:block;width:100%;border-radius:14px;border:1px solid var(--line);background:#0b0c10;margin:6px 0 14px}
+.sharebtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{padding:13px 20px}@media (max-width:620px){.sharebtns .btn{flex:1 1 calc(50% - 5px);padding:13px 10px;font-size:11px;letter-spacing:.14em}.chal .btn{width:100%}}
+.linkrow{display:flex;gap:8px;margin:10px 0 14px}.linkrow input{flex:1;min-width:0;background:#08090c;border:1px solid var(--line2);border-radius:10px;padding:11px 12px;color:var(--ink);font:500 13px Inter}
+.field{display:block;font:600 11px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.field input{display:block;width:100%;margin-top:6px;background:#08090c;border:1px solid var(--line2);border-radius:10px;padding:12px;color:var(--ink);font:500 15px Inter;outline:none;text-transform:none;letter-spacing:0}
+.vs{margin-top:8px;font:600 14px Inter}.vs b.win{color:#7fd18b}.vs b.lose{color:#ff8a7a}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#efede7;color:#0a0a0c;border-radius:999px;padding:10px 18px;font:700 12px Inter;opacity:0;transition:.3s;pointer-events:none;z-index:9}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .foot{margin-top:24px;color:var(--dim);font-size:11px;text-align:center;line-height:1.7}
@@ -203,6 +214,7 @@ button{font-family:inherit;cursor:pointer}
         <div>
           <h2>FINAL FORM</h2>
           <p>Seven prompts from anime and video games. Any right answer attacks — but the <b>rarer</b> your answer, the harder you hit. Run out of time and the rival hits back.</p>
+          <div class="chal" id="chalBox" hidden><small>⚔ Challenge from <span id="chalFrom">a friend</span></small><div class="ct" id="chalText"></div><div class="chips" id="chalChips"></div><button class="btn main" id="playChal" disabled>Accept challenge</button></div>
         </div>
         <div class="cta">
           <button class="btn main" id="playDaily" disabled>Play daily #—</button>
@@ -257,7 +269,7 @@ button{font-family:inherit;cursor:pointer}
         <div>
           <div class="res-head" id="resHead">Daily #1 · Results</div>
           <div class="bigscore" id="bigScore">0</div>
-          <div class="res-sub" id="resSub"></div>
+          <div class="res-sub" id="resSub"></div><div class="vs" id="vsLine" hidden></div>
           <div class="nextrank"><i id="nextFill"></i></div>
           <div class="mini" id="nextTxt" style="margin-top:6px"></div>
         </div>
@@ -265,7 +277,7 @@ button{font-family:inherit;cursor:pointer}
     </div>
     <div class="card" style="margin-top:12px"><h3>Where you stand · <span id="histN">0</span> runs</h3><canvas class="hist" id="hist"></canvas><div id="seedNote" style="margin-top:8px;font-size:11.5px;color:var(--muted)"></div></div>
     <div class="card" style="margin-top:12px"><h3>Your rounds</h3><table class="recap" id="recap"></table></div>
-    <div class="res-actions"><button class="btn main" id="shareBtn">Share result</button><button class="btn ghost" id="againBtn">Practice run</button><button class="btn ghost" id="homeBtn">Home</button><button class="btn ghost" id="reportBtn">Copy report for the developer</button></div>
+    <div class="res-actions"><button class="btn main" id="shareBtn">Share result</button><button class="btn main" id="chalBtn">Challenge a friend</button><button class="btn ghost" id="againBtn">Practice run</button><button class="btn ghost" id="homeBtn">Home</button><button class="btn ghost" id="reportBtn">Copy report for the developer</button></div>
     <div class="foot" id="foot"></div>
   </section>
 </div>
@@ -280,6 +292,14 @@ button{font-family:inherit;cursor:pointer}
 <p style="font-size:13px;color:var(--muted)">Every run on this device, with what you typed, rejected guesses and anything you flagged. Copy it and send it to the developer.</p>
 <textarea class="rep" id="repTxt" readonly></textarea>
 <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end"><button class="btn ghost" id="repClose">Close</button><button class="btn main" id="repCopy">Copy report</button></div></div></div>
+<div class="modal" id="shareModal"><div class="card">
+<div id="shareView"><h3>Share your result</h3><img class="share-prev" id="shareImg" alt="Result card">
+<div class="sharebtns"><button class="btn ghost" id="shareClose">Close</button><button class="btn ghost" id="shareCopy">Copy text</button><button class="btn ghost" id="shareSave">Save image</button><button class="btn main" id="shareNative">Share…</button></div></div>
+<div id="chalView" hidden><h3>Challenge a friend</h3><p style="font-size:13px;color:var(--muted);margin:0 0 6px">They get the same 7 prompts and have to beat <b id="chalScore" style="color:var(--ink)">0</b> points. The link doesn't reveal your answers.</p>
+<label class="field">Your name (optional)<input id="chalName" maxlength="20" placeholder="Shown to your friend"></label>
+<div class="linkrow"><input id="chalLink" readonly></div>
+<div class="sharebtns"><button class="btn ghost" id="chalClose">Close</button><button class="btn ghost" id="chalCopy">Copy link</button><button class="btn main" id="chalNative">Send…</button></div></div>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script src="ff-core.js"></script>
@@ -324,6 +344,14 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 const FOES = [{ id: 'oni', name: 'Oni Brute' }, { id: 'warden', name: 'Iron Warden' }, { id: 'hollow', name: 'The Hollow' }];
 const foe = n => FOES[n % FOES.length];
 const Q = new URLSearchParams(location.search), FAST = Q.has('fast');
+// ---- challenge links: ?c=<base64url JSON {s: prompt ids, sc: score, t: tiers, n: name, k: K.O.s}> (no answers in it) ----
+const b64e = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64d = t => JSON.parse(decodeURIComponent(escape(atob(t.replace(/-/g, '+').replace(/_/g, '/')))));
+const CH = (() => { try { const c = Q.get('c'); if (!c) return null; const d = b64d(c);
+  if (!d || !Array.isArray(d.s) || d.s.length !== 7 || !d.s.every(id => typeof id === 'string' && window.FF_PROMPTS.some(p => p.id === id))) return null;
+  return { s: d.s, sc: Math.max(0, Math.min(5000, +d.sc || 0)), t: String(d.t || '').replace(/[^SABCDEx]/g, '').slice(0, 7), n: String(d.n || '').replace(/[<>]/g, '').trim().slice(0, 20), k: Math.max(0, Math.min(20, +d.k || 0)) };
+} catch (e) { return null; } })();
+const SITE = location.origin + location.pathname.replace(/index\.html$/, '');
 const $ = id => document.getElementById(id);
 
 /* ================= PROMPTS + MATCHING ================= */
@@ -430,7 +458,7 @@ let activeCut = null, cutResolve = null, cutGuard = 0, CUR = null;
 function loadProgress() { const n = CUT_IDS.filter(i => audioIn[i]).length, r = CUT_IDS.filter(i => ready[i]).length; $('loadBar').style.width = Math.round((n + r) / (CUT_IDS.length * 2) * 100) + '%';
   const ok = r === CUT_IDS.length && (n >= CUT_IDS.length || (n >= 4 && performance.now() > 6000)); $('loadLine').textContent = n >= CUT_IDS.length ? 'Ready' : ok ? `Ready · loading sound ${n}/${CUT_IDS.length}` : `Preparing cutscenes · ${n}/${CUT_IDS.length}`; if (ok || loadTimedOut) enableStart(); }
 let loadTimedOut = false; setTimeout(() => { loadTimedOut = true; loadProgress(); }, 20000);
-function enableStart() { $('playDaily').disabled = false; $('playPractice').disabled = false; if (loadTimedOut) $('loadLine').textContent = 'Ready'; }
+function enableStart() { $('playDaily').disabled = false; $('playPractice').disabled = false; $('playChal').disabled = false; if (loadTimedOut) $('loadLine').textContent = 'Ready'; }
 function mountCuts() { const st = $('stage');
   for (const id of CUT_IDS) { const f = document.createElement('iframe'); f.src = `cut/${id}.html?embed=1&id=${id}`; f.title = 'cutscene'; f.setAttribute('allow', 'autoplay'); f.dataset.id = id; st.insertBefore(f, st.firstChild); frames[id] = f; } }
 addEventListener('message', e => { const m = e.data; if (!m || !m.ff) return;
@@ -464,6 +492,7 @@ const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
 $('playDaily').onclick = () => { unlockAudio(); startGame('daily'); };
 $('playPractice').onclick = () => { unlockAudio(); startGame('practice'); };
+$('playChal').onclick = () => { unlockAudio(); startGame('challenge'); };
 $('againBtn').onclick = () => { unlockAudio(); startGame('practice'); };
 $('homeBtn').onclick = () => { $('playDaily').textContent = `Replay daily #${DAYNO}`; show('home'); };
 
@@ -472,7 +501,7 @@ let G = null, timerRAF = 0;
 function startGame(mode) {
   refreshLive();
   const r = mode === 'daily' ? rng(DAY * 7919 + 13) : rng((Math.random() * 2 ** 31) | 0);
-  G = { mode, prompts: Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
+  G = { mode, prompts: mode === 'challenge' && CH ? CH.s.map(id => PROMPTS.find(p => p.id === id)) : Q.get('set') ? Q.get('set').split(',').map(id => PROMPTS.find(p => p.id === id)) : mode === 'daily' ? dailySet(DAY) : pickSet(r), round: 0, hp: CFG.hp, rv: CFG.rivalHP, rvN: 0, score: 0, res: [], strikes: 0, kos: 0, over: false };
   loadExtras(G.prompts); if (AI_DOWN || aiFails) aiHealth();
   setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
   show('play'); placeHero(); drawTrack(); $('askView').style.display = 'none'; $('reveal').classList.remove('on');
@@ -614,7 +643,7 @@ function openReport() { $('repTxt').value = buildReport(); $('repModal').classLi
 /* ================= RESULTS ================= */
 async function endGame() {
   G.over = true; const rank = rankOf(G.score);
-  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.sug) o.sug = 1; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice(); if (G.aiErr && G.aiErr.length) run.aiErr = G.aiErr.slice(); if (API) run.check = AI_DOWN ? 'off' : 'on';
+  const run = { v: 1, ts: Date.now(), day: DAY, ...(G.mode === 'challenge' && CH ? { vs: { n: CH.n, sc: CH.sc } } : {}), mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.sug) o.sug = 1; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice(); if (G.aiErr && G.aiErr.length) run.aiErr = G.aiErr.slice(); if (API) run.check = AI_DOWN ? 'off' : 'on';
   if (Q.get('who')) run.who = Q.get('who');
   if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
   window.__lastRun = run;
@@ -626,7 +655,9 @@ function renderResults(run, all, where) {
   const md = $('medal'); md.className = 'medal ' + rank.key; md.style.setProperty('--m-c', rank.c); md.style.setProperty('--m-i', rank.i); $('rankName').style.setProperty('--m-t', rank.t); $('rankName').textContent = rank.name;
   $('medalGlyph').innerHTML = medalSVG(rank);
   md.querySelectorAll('.spark').forEach(s => s.remove()); if (ri >= 2) for (let i = 0; i < (ri === 3 ? 7 : 4); i++) { const s = document.createElement('i'); s.className = 'spark'; const a = i / (ri === 3 ? 7 : 4) * 6.283 + .4, rr = 86 + (i % 2) * 14; s.style.left = (95 + Math.cos(a) * rr - 5) + 'px'; s.style.top = (95 + Math.sin(a) * rr - 5) + 'px'; s.style.animationDelay = (i * .37) + 's'; md.appendChild(s); }
-  $('resHead').textContent = (run.mode === 'daily' ? `Daily #${run.day + 1}` : 'Practice run') + (run.alive ? ' · Complete' : ' · Defeated');
+  $('resHead').textContent = (run.mode === 'daily' ? `Daily #${run.day + 1}` : run.mode === 'challenge' ? 'Challenge' : 'Practice run') + (run.alive ? ' · Complete' : ' · Defeated');
+  const vl = $('vsLine'); vl.hidden = !run.vs;
+  if (run.vs) { const who = run.vs.n || 'Your friend', d = run.score - run.vs.sc; vl.innerHTML = ''; vl.append(`vs ${who}: ${run.score} – ${run.vs.sc} · `); const b = document.createElement('b'); b.className = d > 0 ? 'win' : d < 0 ? 'lose' : ''; b.textContent = d > 0 ? 'You win!' : d < 0 ? `${who} wins` : 'Tie!'; vl.append(b); }
   if (!all) countUp($('bigScore'), run.score);
   const S = all ? all.stats : emptyStats(), n = Math.round(S.n), mb = Math.min(NBINS - 1, Math.floor(run.score / BIN)), below = S.bins.slice(0, mb).reduce((a, b) => a + b, 0), same = S.bins[mb] || 0;
   const pct = n > 1 ? Math.round(clamp((below + Math.max(0, same - 1) / 2) / (n - 1)) * 100) : null;
@@ -657,15 +688,73 @@ function drawHist(binsIn, mine) { const cv = $('hist'), dpr = Math.min(2, device
   const mx = X(mine); g.strokeStyle = '#fff'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(mx, pt); g.lineTo(mx, H - pb); g.stroke(); g.setLineDash([]); g.fillStyle = '#fff'; g.font = '800 10px Inter'; g.textAlign = mx > W - 60 ? 'right' : 'left'; g.fillText('YOU · ' + mine, mx + (mx > W - 60 ? -6 : 6), pt); g.textAlign = 'left'; }
 $('reportBtn').onclick = openReport; $('myRepBtn').onclick = openReport; $('repClose').onclick = () => $('repModal').classList.remove('on');
 $('repCopy').onclick = async () => { const t = $('repTxt'); try { await navigator.clipboard.writeText(t.value); toast('Report copied'); } catch (e) { t.select(); document.execCommand('copy'); toast('Report copied'); } };
-$('shareBtn').onclick = async () => { const r = window.__lastRun; if (!r) return; const em = { S: '💎', A: '🟨', B: '🟪', C: '🟦', D: '🟩', E: '⬜' };
-  const txt = `FINAL FORM ${r.mode === 'daily' ? '#' + (r.day + 1) : '(practice)'} — ${r.score} pts · ${rankOf(r.score).name}\n${r.ans.map(a => a.t ? em[a.t] : '🟥').join('')}`;
-  try { await navigator.clipboard.writeText(txt); toast('Result copied'); } catch (e) { toast(txt); } };
+/* ================= SHARE + CHALLENGE ================= */
+const EMO = { S: '🌈', A: '🟨', B: '🟪', C: '🟦', D: '🟩', E: '⬜' };
+const RANK_INK = { bronze: '#e5a774', silver: '#e3e8ef', gold: '#ffd35c', platinum: '#d4e6ff' };
+const runLabel = r => r.mode === 'daily' ? `Daily #${r.day + 1}` : r.mode === 'challenge' ? 'Challenge' : 'Practice';
+function shareText(r) { const rk = rankOf(r.score);
+  return `FINAL FORM · ${runLabel(r)}\n${rk.name} · ${r.score} pts\n${r.ans.map(a => a.t ? EMO[a.t] : '🟥').join('')}` + (r.kos ? `\n${r.kos} rival${r.kos > 1 ? 's' : ''} defeated` : '') + (r.vs ? `\nvs ${r.vs.n || 'a friend'}: ${r.score} – ${r.vs.sc}` : '') + `\n${SITE}`; }
+// 1200x900 result card
+async function drawCard(r) {
+  try { await Promise.all([document.fonts.load('800 60px "Shippori Mincho B1"'), document.fonts.load('800 40px Inter'), document.fonts.load('600 20px Inter')]); } catch (e) {}
+  const W = 1200, H = 900, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), rk = rankOf(r.score), ink = RANK_INK[rk.key] || '#fff';
+  const rr = (X, Y, w, h, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + h, rad); x.arcTo(X + w, Y + h, X, Y + h, rad); x.arcTo(X, Y + h, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); };
+  const spaced = (t, X, Y, sp) => { const ws = [...t].map(ch => x.measureText(ch).width), tot = ws.reduce((a, b) => a + b, 0) + sp * (ws.length - 1); let cx = X - tot / 2; [...t].forEach((ch, i) => { x.fillText(ch, cx + ws[i] / 2, Y); cx += ws[i] + sp; }); };
+  const bg = x.createRadialGradient(W / 2, 0, 50, W / 2, H / 2, 900); bg.addColorStop(0, '#1b1f2b'); bg.addColorStop(1, '#07080b'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  rr(40, 40, W - 80, H - 80, 36); x.fillStyle = 'rgba(19,22,30,.92)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.08)'; x.lineWidth = 2; x.stroke();
+  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.fillStyle = '#ecebe6'; x.font = '800 62px "Shippori Mincho B1", Georgia, serif'; spaced('FINAL FORM', W / 2, 150, 22);
+  x.fillStyle = '#8a8984'; x.font = '600 26px Inter, sans-serif'; spaced(runLabel(r).toUpperCase(), W / 2, 205, 6);
+  // trophy
+  x.save(); x.translate(W / 2, 285); x.strokeStyle = ink; x.lineWidth = 9; x.lineJoin = 'round'; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(-34, -42); x.lineTo(34, -42); x.lineTo(30, -2); x.quadraticCurveTo(0, 26, -30, -2); x.closePath(); x.stroke();
+  x.beginPath(); x.moveTo(-34, -30); x.quadraticCurveTo(-62, -30, -56, -8); x.quadraticCurveTo(-50, 8, -28, 6); x.stroke();
+  x.beginPath(); x.moveTo(34, -30); x.quadraticCurveTo(62, -30, 56, -8); x.quadraticCurveTo(50, 8, 28, 6); x.stroke();
+  x.beginPath(); x.moveTo(0, 18); x.lineTo(0, 36); x.stroke(); rr(-24, 36, 48, 16, 6); x.stroke(); x.restore();
+  x.fillStyle = ink; x.font = '800 54px Inter, sans-serif'; spaced(rk.name.toUpperCase(), W / 2, 410, 4);
+  x.fillStyle = '#fff'; x.font = '800 96px Inter, sans-serif'; x.fillText(`${r.score} PTS`, W / 2, 520);
+  // tier chips
+  const n = r.ans.length, sz = 96, gap = 18, x0 = W / 2 - (n * sz + (n - 1) * gap) / 2;
+  r.ans.forEach((a, i) => { const X = x0 + i * (sz + gap), Y = 570; rr(X, Y, sz, sz, 18);
+    if (a.t === 'S') { const g = x.createLinearGradient(X, Y, X + sz, Y + sz); ['#ff7eb6', '#ffb86b', '#fff07a', '#7dffb2', '#6fd8ff', '#a98bff'].forEach((col, j, L) => g.addColorStop(j / (L - 1), col)); x.fillStyle = g; x.shadowColor = 'rgba(255,170,230,.8)'; x.shadowBlur = 30; }
+    else x.fillStyle = a.t ? TIERS[a.t].col : '#3b2226';
+    x.fill(); x.shadowBlur = 0; x.fillStyle = a.t ? '#0a0a0c' : '#ff8a7a'; x.font = '800 46px "Shippori Mincho B1", Georgia, serif'; x.fillText(a.t || '✕', X + sz / 2, Y + sz / 2 + 16);
+    if (a.t === 'S') { x.fillStyle = '#fff'; [[X + 10, Y + 14, 7], [X + sz - 12, Y + sz - 16, 6], [X + sz - 16, Y + 12, 4]].forEach(([sx, sy, sr]) => { x.beginPath(); x.moveTo(sx, sy - sr * 2); x.lineTo(sx + sr * .5, sy - sr * .5); x.lineTo(sx + sr * 2, sy); x.lineTo(sx + sr * .5, sy + sr * .5); x.lineTo(sx, sy + sr * 2); x.lineTo(sx - sr * .5, sy + sr * .5); x.lineTo(sx - sr * 2, sy); x.lineTo(sx - sr * .5, sy - sr * .5); x.closePath(); x.fill(); }); } });
+  x.fillStyle = '#ecebe6'; x.font = '700 38px Inter, sans-serif';
+  x.fillText(r.vs ? `vs ${r.vs.n || 'a friend'}: ${r.score} – ${r.vs.sc} · ${r.score > r.vs.sc ? 'Won' : r.score < r.vs.sc ? 'Lost' : 'Tie'}` : r.kos ? `${r.kos} Rival${r.kos > 1 ? 's' : ''} Defeated` : (r.alive ? 'Survived all 7 rounds' : 'Fell in battle'), W / 2, 740);
+  x.fillStyle = '#5d5c58'; x.font = '600 24px Inter, sans-serif'; x.fillText(SITE.replace(/^https?:\/\//, '').replace(/\/$/, ''), W / 2, 805);
+  return c;
+}
+let shareBlob = null;
+function openModal(which) { $('shareView').hidden = which !== 'share'; $('chalView').hidden = which !== 'chal'; $('shareModal').classList.add('on'); }
+$('shareModal').onclick = e => { if (e.target === $('shareModal')) $('shareModal').classList.remove('on'); };
+$('shareClose').onclick = $('chalClose').onclick = () => $('shareModal').classList.remove('on');
+$('shareBtn').onclick = async () => { const r = window.__lastRun; if (!r) return;
+  const c = await drawCard(r); $('shareImg').src = c.toDataURL('image/png'); shareBlob = await new Promise(res => c.toBlob(res, 'image/png'));
+  $('shareNative').hidden = !(navigator.canShare && navigator.canShare({ files: [new File([shareBlob], 'final-form.png', { type: 'image/png' })] })); openModal('share'); };
+$('shareNative').onclick = async () => { const r = window.__lastRun; try { await navigator.share({ files: [new File([shareBlob], 'final-form.png', { type: 'image/png' })], text: shareText(r) }); } catch (e) { if (e.name !== 'AbortError') toast('Sharing not available — try Save image'); } };
+$('shareSave').onclick = () => { const a = document.createElement('a'); a.href = $('shareImg').src; const r = window.__lastRun; a.download = `final-form-${r.mode === 'daily' ? 'daily-' + (r.day + 1) : r.mode}-${r.score}.png`; document.body.appendChild(a); a.click(); a.remove(); };
+$('shareCopy').onclick = async () => { const t = shareText(window.__lastRun); try { await navigator.clipboard.writeText(t); toast('Result copied'); } catch (e) { toast(t); } };
+// challenge a friend: same 7 prompts, your score to beat
+function chalLink() { const r = window.__lastRun, nm = $('chalName').value.trim().slice(0, 20); try { localStorage.setItem('ff_name', nm); } catch (e) {}
+  return SITE + '?c=' + b64e({ s: r.ans.map(a => a.p), sc: r.score, t: r.ans.map(a => a.t || 'x').join(''), n: nm, k: r.kos || 0 }); }
+const chalMsg = () => { const r = window.__lastRun; return `⚔ Beat my ${r.score} pts on Final Form — same 7 prompts:`; };
+$('chalBtn').onclick = () => { const r = window.__lastRun; if (!r) return; try { $('chalName').value = localStorage.getItem('ff_name') || ''; } catch (e) {}
+  $('chalScore').textContent = r.score; $('chalLink').value = chalLink(); $('chalNative').hidden = !navigator.share; openModal('chal'); };
+$('chalName').oninput = () => { $('chalLink').value = chalLink(); };
+$('chalLink').onfocus = () => $('chalLink').select();
+$('chalCopy').onclick = async () => { const t = `${chalMsg()} ${chalLink()}`; try { await navigator.clipboard.writeText(t); toast('Challenge link copied'); } catch (e) { $('chalLink').select(); document.execCommand('copy'); toast('Challenge link copied'); } };
+$('chalNative').onclick = async () => { try { await navigator.share({ text: chalMsg(), url: chalLink() }); } catch (e) { if (e.name !== 'AbortError') toast('Copy the link instead'); } };
+// arriving from a challenge link
+if (CH) { if (matchMedia('(max-width:720px)').matches) { const hb = $('chalBox'), hero = document.querySelector('#home .hero'); hero.after(hb); hb.style.margin = '14px 0 0'; hb.style.maxWidth = 'none'; } $('chalBox').hidden = false; $('chalFrom').textContent = CH.n || 'a friend';
+  $('chalText').innerHTML = ''; $('chalText').append('Beat '); const bb = document.createElement('b'); bb.textContent = `${CH.sc} pts`; $('chalText').append(bb, ` (${rankOf(CH.sc).name}) on the same 7 prompts`);
+  $('chalChips').innerHTML = [...CH.t].map(t => t === 'x' ? '<span class="x">✕</span>' : `<span class="${t === 'S' ? 'myth' : ''}" style="background:${TIERS[t].col}">${t}</span>`).join(''); }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 2200); }
 addEventListener('resize', () => { if ($('results').classList.contains('on') && window.__lastRun) drawHist(window.__histBins || new Array(NBINS).fill(0), window.__lastRun.score); });
 
 /* ================= BOOT ================= */
 mountCuts(); placeHero(); loadProgress();
-window.__ff = { mythify, drawTrack, PROMPTS, dailySet, pickSet, rivalSay: (...a) => rivalSay(...a), foe: n => foe(n), playCut: (...a) => playCut(...a), match, norm, rankOf, RANKS, TIERS, state: () => G, audT: () => CUR ? [CUR.currentTime, CUR.paused] : null };
+window.__ff = { mythify, drawTrack, drawCard: r => drawCard(r), shareText: r => shareText(r), CH: () => CH, PROMPTS, dailySet, pickSet, rivalSay: (...a) => rivalSay(...a), foe: n => foe(n), playCut: (...a) => playCut(...a), match, norm, rankOf, RANKS, TIERS, state: () => G, audT: () => CUR ? [CUR.currentTime, CUR.paused] : null };
 })();
 </script>
 </body>
