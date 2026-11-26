@@ -503,7 +503,7 @@ async function resolve(ans, why, raw) {
 }
 $('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
 // rival lines: shown in a speech bubble when that rival steps in
-const FOE_LINES = { oni: 'Stand Ready For My Arrival Worm', warden: 'YLLACOFM' };
+const FOE_LINES = { oni: 'Stand Ready For My Arrival Worm', hollow: 'YLLACOFM' };
 let sayTimer = 0, sayTok = 0;
 function rivalSay(f, onlyIf = true) { const line = FOE_LINES[f.id]; if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on');
   return new Promise(res => { const full = '“' + line + '”'; let i = 0; sayTimer = setInterval(() => { i++; $('sayTxt').textContent = full.slice(0, i); if (i >= full.length) { clearInterval(sayTimer); setTimeout(res, 900); setTimeout(() => { if (tok === sayTok) $('say').classList.remove('on'); }, 2600); } }, 38); }); }
