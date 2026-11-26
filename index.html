@@ -503,9 +503,14 @@ async function resolve(ans, why, raw) {
 }
 $('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
 // rival lines: shown in a speech bubble when that rival steps in
-const FOE_LINES = { oni: 'Stand Ready For My Arrival Worm', hollow: 'YLLACOFM' };
+const FOE_LINES = {
+  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.'],
+  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form."],
+  hollow: ['YLLACOFM'] };
+let lastLine = {};
+function pickLine(id) { const L = FOE_LINES[id]; if (!L || !L.length) return null; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastLine[id]) i = (i + 1) % L.length; lastLine[id] = i; return L[i]; }
 let sayTimer = 0, sayTok = 0;
-function rivalSay(f, onlyIf = true) { const line = FOE_LINES[f.id]; if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on');
+function rivalSay(f, onlyIf = true) { const line = pickLine(f.id); if (!line || !onlyIf || FAST) return Promise.resolve(); clearInterval(sayTimer); const tok = ++sayTok; $('sayWho').textContent = f.name; $('sayTxt').textContent = ''; $('say').classList.add('on');
   return new Promise(res => { const full = '“' + line + '”'; let i = 0; sayTimer = setInterval(() => { i++; $('sayTxt').textContent = full.slice(0, i); if (i >= full.length) { clearInterval(sayTimer); setTimeout(res, 900); setTimeout(() => { if (tok === sayTok) $('say').classList.remove('on'); }, 2600); } }, 38); }); }
 function banner(b, s) { return new Promise(res => { if (FAST) return res(); $('bannerB').textContent = b; $('bannerS').textContent = s; $('banner').classList.add('on'); setTimeout(() => { $('banner').classList.remove('on'); setTimeout(res, 250); }, 1700); }); }
 const wait = ms => new Promise(r => setTimeout(r, ms));
