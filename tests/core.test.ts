@@ -42,6 +42,18 @@ describe('"Did you mean …?" suggestions', () => {
     expect(sug('op-strawhats', 'Ussop')).toBe('Usopp');
     expect(sug('op-strawhats', 'Sanjii Vinsmoke')).toBe('Sanji');
   });
+  test('short names: sound-alike spellings (Levi, Eren, Nami, Brook)', () => {
+    for (const x of ['leve', 'levey', 'Leevi']) expect(sug('aot-survey', x)).toBe('Levi Ackerman');
+    expect(sug('aot-survey', 'Eran')).toBe('Eren Yeager');
+    expect(sug('op-strawhats', 'Nammy')).toBe('Nami');
+    expect(sug('op-strawhats', 'Bruk')).toBe('Brook');
+    expect(sug('op-strawhats', 'Jinbay')).toBe('Jinbe');
+  });
+  test('short sound-alikes need the same opening letters', () => {
+    expect(sug('elden-demigods', 'melina')).toBe(null);     // not Malenia
+    expect(sug('white-hair', 'yhwach')).toBe(null);          // not Yuki
+    expect(sug('swords', 'zeke')).toBe(null);                // not Zack
+  });
   test('short guesses, sequel numbers and far-off guesses get nothing', () => {
     expect(sug('swords', 'jack')).toBe(null);                           // too short to guess at
     expect(sug('female-leads', 'resident evil zero')).toBe(null);       // never "Resident Evil 3"

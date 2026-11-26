@@ -40,7 +40,7 @@ async def main():
         await pg.fill('#ans', 'Frankie'); await pg.press('#ans', 'Enter'); await pg.wait_for_selector('#fb .sug', timeout=3000)
         await pg.click('#fb .claim'); await pg.wait_for_timeout(200); s = await st()
         ok('"No, I meant …" submits the original guess as typed (a normal miss offline)', s['strikes'] == 1 and not s['res'][2] if len(s['res']) > 2 else s['strikes'] == 1, str(s))
-        # 4) exact answers are untouched and instant
+        # 4) short name sound-alike on another prompt is covered by unit tests; exact answers are untouched and instant
         await pg.fill('#ans', 'Nami'); await pg.press('#ans', 'Enter'); await pg.wait_for_function("__ff.state().res[2]", timeout=5000)
         ok('exact answers unchanged', (await st())['res'][2]['name'] == 'Nami')
         ok('no page errors', not errs, '; '.join(errs))

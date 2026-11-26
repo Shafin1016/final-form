@@ -59,22 +59,29 @@
   const NUMW = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10', ii: '2', iii: '3', iv: '4', v: '5', vi: '6', vii: '7', viii: '8', ix: '9', x: '10' };
   // sequel numbers must agree: "Resident Evil Zero" is never "Resident Evil 3"
   const nums = ts => ts.map(t => NUMW[t] || (/^\d+$/.test(t) ? String(+t) : (t.match(/\d+/g) || []).join(','))).filter(Boolean).sort().join('|');
+  // rough sound-alike key: first letter + consonants ("levey" / "leve" / "levi" -> "lv", "frankie" / "franky" -> "frnk")
+  const skel = t => { const w = t.replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/[cq]/g, 'k').replace(/z/g, 's').replace(/x/g, 'ks');
+    const c = w.replace(/(.)\1+/g, '$1'); return c[0] + c.slice(1).replace(/[aeiouyhw]/g, ''); };
   function sugIndex(p) {
     if (p._sug && p._sug.n === p.answers.length) return p._sug;
     const items = [], freq = new Map();
     for (const ans of p.answers) { const seen = new Set();
-      for (const alt of ans.alts || [ans.name]) { const ts = toks(alt); if (!ts.length) continue; items.push({ ans, key: ts.join(''), sorted: ts.slice().sort().join(''), ts, num: nums(ts) }); for (const t of ts) seen.add(t); }
+      for (const alt of ans.alts || [ans.name]) { const ts = toks(alt); if (!ts.length) continue; items.push({ ans, key: ts.join(''), sorted: ts.slice().sort().join(''), ts, num: nums(ts), sk: ts.length === 1 && !/\d/.test(ts[0]) ? skel(ts[0]) : null }); for (const t of ts) seen.add(t); }
       for (const t of seen) freq.set(t, (freq.get(t) || 0) + 1); }
     for (const [key, ans] of (p.extraKeys || [])) items.push({ ans, key, sorted: key, ts: [key], num: nums([key]) });
     return (p._sug = { n: p.answers.length, items, freq });
   }
   function suggest(p, raw) {
     const it = toks(raw), k = it.join(''), sk = it.slice().sort().join('');
-    if (k.length < 5) return null;      // short guesses are too easy to confuse
+    if (k.length < 3) return null;
+    const short = k.length < 5, ks = it.length === 1 && !/\d/.test(k) ? skel(k) : null;
     const ix = sugIndex(p), nk = nums(it); let best = null, bs = Infinity, tie = false;
     const take = (ans, sc) => { if (sc < bs - 1e-9) { best = ans; bs = sc; tie = false; } else if (sc < bs + 1e-9 && best && ans.key !== best.key) tie = true; };
     for (const x of ix.items) {
       if (x.key.length < 3 || x.num !== nk) continue;
+      // short names ("Levi", "Eren", "Goku"): only a sound-alike with the same first letter and a similar length
+      if (ks && x.sk && ks.length >= 2 && ks === x.sk && k.slice(0, 2) === x.key.slice(0, 2) && Math.abs(k.length - x.key.length) <= 2 && x.key.length <= 8) take(x.ans, 0.15 + Math.abs(k.length - x.key.length) * 0.01);
+      if (short) continue;
       for (const [a, b] of [[k, x.key], [sk, x.sorted]]) {          // as typed, and with words in any order
         const L = Math.max(a.length, b.length), tol = Math.min(4, Math.floor(L * 0.3));   // roughly 1 slip per 3–4 letters
         const d = a === b ? 0 : osa(a, b, tol); if (d <= tol) take(x.ans, d / L + (a === sk && a !== k ? 0.02 : 0));
