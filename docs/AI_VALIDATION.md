@@ -12,7 +12,10 @@ player types an answer
   ├─ 3. answers other players already got validated ───────────────── instant, in the browser
   │      (preloaded from the shared database when the game starts)
   │
-  │   only if all three miss: the timer pauses and the browser asks the backend
+  ├─ "Did you mean “Franky”?" — a close-but-not-close-enough guess gets one suggestion ── instant, no miss
+  │      Enter or click accepts it; "No, I meant …" sends the guess as typed to the next step
+  │
+  │   only if all three miss (and no suggestion was taken): the timer pauses and the browser asks the backend
   ▼
   backend (Supabase Edge Function `ff`)
   ├─ same checks 1–3 against the latest shared database ─────────── ~30–70 ms
@@ -202,6 +205,7 @@ PGHOST=... PGUSER=... bash tests/sql.test.sh     # migration + functions + concu
 bun tests/dev-server.ts &                        # local backend: in-memory DB + fake model (or AI_API_KEY=... for the real one)
 python3 tests/browser_test.py                    # full game in Chrome against it
 python3 -m http.server 8765 & python3 tests/offline_test.py   # game with no backend = unchanged behaviour
+python3 tests/suggest_test.py                    # "Did you mean …?" flow in the browser
 bun tests/bench.ts                               # latency + cache-hit simulation
 ```
 

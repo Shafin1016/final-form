@@ -101,7 +101,7 @@ button{font-family:inherit;cursor:pointer}
 @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 .under{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;min-height:20px}
 .fb{font-size:12px;color:var(--muted)}.fb.bad{color:#ff8a7a}.fb.chk{color:#e9e7e1}.fb.chk::before{content:'';display:inline-block;width:9px;height:9px;margin-right:7px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}.ansrow.chk{opacity:.6;pointer-events:none}
-.claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
+.fb .sug{background:none;border:0;padding:0;color:#fff;font:600 13px Inter;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.35);text-underline-offset:3px}.fb .sug:hover{text-decoration-color:#fff}.fb .sughint{color:var(--muted);font-size:11px;margin-left:8px}.claim{background:none;border:1px solid rgba(255,255,255,.22);color:#e9e7e1;border-radius:999px;padding:2px 9px;margin-left:8px;font:600 11px Inter;cursor:pointer}.claim:hover{border-color:#fff}.claim.on{border-color:#7fd18b;color:#7fd18b;cursor:default}
 .misses{margin-top:6px;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.misses s{color:#ff8a7a;text-decoration:none}
 .rep{width:100%;height:220px;background:#0b0c0f;color:#d8d6cf;border:1px solid var(--line2);border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
 .strikes{display:flex;gap:6px;align-items:center;font:700 9px Inter;letter-spacing:.2em;color:var(--muted)}
@@ -455,7 +455,7 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 function drawTrack() { $('track').innerHTML = G.prompts.map((p, i) => { const r = G.res[i]; if (r) { const c = r.tier ? TIERS[r.tier].col : 'var(--X)'; return `<span class="done" style="background:${c};border-color:${c}">${r.tier || '✕'}</span>`; } return `<span class="${i === G.round ? 'cur' : ''}">${i + 1}</span>`; }).join(''); }
 function nextRound(first) {
   if (G.round >= CFG.rounds || G.hp <= 0) return endGame();
-  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
+  const p = G.prompts[G.round]; G.strikes = 0; G.locked = false; G.rmiss = []; G.checking = false; G.aiN = 0; G.sug = null; G.sugSkip = null; G.lastSug = null; $('ansForm').classList.remove('chk'); $('ans').readOnly = false;
   $('roundTxt').textContent = `Round ${G.round + 1} / ${CFG.rounds}`; $('pips').innerHTML = Array.from({ length: 7 }, (_, i) => `<i class="${i < p.lvl ? 'on' : ''}"></i>`).join('');
   $('catTxt').textContent = `${p.cat} · ${p.src}`; $('qTxt').textContent = p.q; $('ans').value = ''; $('fb').textContent = G.round === 0 ? 'Rarer answers hit harder.' : 'Any valid answer attacks.'; $('fb').className = 'fb';
   drawStrikes(); drawTrack(); $('askView').style.display = ''; $('reveal').classList.remove('on'); $('nextBtn').style.display = 'none';
@@ -466,11 +466,25 @@ function drawStrikes() { $('strikes').innerHTML = 'MISSES ' + Array.from({ lengt
 function startTimer(leftMs) { cancelAnimationFrame(timerRAF); const dur = CFG.time * 1000, t0 = performance.now() - (leftMs == null ? 0 : dur - leftMs); let lastSec = Math.ceil((leftMs == null ? dur : leftMs) / 1000);
   const tick = () => { if (G.locked || G.checking) return; const left = Math.max(0, dur - (performance.now() - t0)), sec = Math.ceil(left / 1000); $('timerFill').style.transform = `scaleX(${left / dur})`; $('tleft').textContent = sec; const low = sec <= 5; $('timer').classList.toggle('low', low); $('tleft').classList.toggle('low', low); if (low && sec !== lastSec && sec > 0) blip('tick'); lastSec = sec; if (left <= 0) return resolve(null, 'time'); timerRAF = requestAnimationFrame(tick); };
   G.timeLeft = () => Math.max(0, dur - (performance.now() - t0)); timerRAF = requestAnimationFrame(tick); }
-$('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked || G.checking) return; unlockAudio(); const raw = $('ans').value.trim(); if (!raw) return; const p = G.prompts[G.round], m = match(p, raw);
+$('ansForm').onsubmit = e => { e.preventDefault(); if (!G || G.locked || G.checking) return; unlockAudio(); const raw = $('ans').value.trim(); if (!raw) return; const p = G.prompts[G.round];
+  // Enter again on an unchanged guess = take the suggestion
+  if (G.sug && G.sug.raw === raw && G.sug.round === G.round) return takeSug();
+  const m = match(p, raw);
   if (m.ans) return resolve(m.ans, null, raw);
+  // close to an answer but not close enough to auto-accept: offer it, no miss, nothing sent anywhere
+  if (m.none && G.sugSkip !== raw) { const s = window.FFCore.suggest(p, raw); if (s) return offerSug(p, raw, s); }
   // not on the list: ask the backend (shared validated answers, then the model) before counting a miss
   if (m.none && API && CONF.aiCheck !== false && (G.aiN || 0) < (CONF.aiPerRound || 5)) return aiCheck(p, raw);
   miss(p, raw, m); };
+function offerSug(p, raw, ans) {
+  G.sug = { raw, ans, round: G.round }; $('fb').className = 'fb'; $('fb').textContent = 'Did you mean ';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'sug'; b.textContent = `“${ans.name}”`; b.onclick = () => takeSug();
+  const no = document.createElement('button'); no.type = 'button'; no.className = 'claim'; no.textContent = `No, I meant “${raw}”`;
+  no.onclick = () => { G.sug = null; G.sugSkip = raw; $('ans').value = raw; $('ansForm').requestSubmit(); };
+  const hint = document.createElement('span'); hint.className = 'sughint'; hint.textContent = 'Enter to accept';
+  $('fb').append(b, '?', hint, no); $('ans').focus(); }
+$('ans').addEventListener('input', () => { if (G && G.sug && $('ans').value.trim() !== G.sug.raw) { G.sug = null; $('fb').className = 'fb'; $('fb').textContent = ''; } });
+function takeSug() { const s = G.sug; if (!s || G.locked) return; G.sug = null; G.sugUsed = (G.sugUsed || 0) + 1; G.lastSug = s.raw; resolve(s.ans, null, s.raw); }
 function miss(p, raw, m) {
   G.strikes++; drawStrikes(); blip('bad'); const f = $('ansForm'); f.classList.remove('shake'); f.offsetWidth; f.classList.add('shake');
   $('fb').className = 'fb bad'; $('fb').textContent = m.ambiguous ? `“${raw}” could be more than one answer — be more specific.` : `“${raw}” isn't on our list. ${CFG.strikes - G.strikes > 0 ? (CFG.strikes - G.strikes) + ' miss' + (CFG.strikes - G.strikes > 1 ? 'es' : '') + ' left.' : ''}`;
@@ -509,7 +523,7 @@ async function resolve(ans, why, raw) {
   $('rvT2').textContent = tier ? ans.name : 'No attack';
   $('rvT3').textContent = tier ? `${tier === 'S' ? 'Instant K.O.' : dealt + ' damage'}${taken ? ` · costs you ${taken} HP` : ''} · +${pts} points` : `The rival counterattacks for ${taken} HP.`;
   blip(tier ? 'good' : 'bad');
-  G.res[G.round] = { miss: (G.rmiss || []).slice(), p: p.id, a: tier ? ans.key : null, name: tier ? ans.name : null, raw: raw || null, tier, pts, dealt, taken, cut, why: why || null, ms: Math.round(CFG.time * 1000 - (G.timeLeft ? G.timeLeft() : 0)) };
+  G.res[G.round] = { miss: (G.rmiss || []).slice(), p: p.id, a: tier ? ans.key : null, name: tier ? ans.name : null, raw: raw || null, tier, pts, dealt, taken, cut, why: why || null, ms: Math.round(CFG.time * 1000 - (G.timeLeft ? G.timeLeft() : 0)) }; if (tier && G.lastSug && G.lastSug === raw) G.res[G.round].sug = true;
   drawTrack();
   await wait(FAST ? 0 : 900);
   await playCut(cut, pts);
@@ -547,7 +561,7 @@ function buildReport() { const runs = Store.local(), P = id => PROMPTS.find(p =>
   const lines = [`FINAL FORM PLAY REPORT · ${runs.length} run${runs.length === 1 ? '' : 's'} · ${new Date().toISOString().slice(0, 10)}`];
   runs.forEach((r, i) => { lines.push('', `Run ${i + 1} · ${new Date(r.ts).toLocaleString()} · ${r.mode} · ${r.score} pts · ${r.rank}`);
     (r.ans || []).forEach((a, j) => { const p = P(a.p), nm = a.a ? ((p.answers || []).find(x => x.key === a.a) || {}).name || a.a : null;
-      lines.push(`  R${j + 1} [${a.p}] ${a.t ? a.t + ' · ' + nm + (a.r && a.r !== nm ? ` (typed "${a.r}")` : '') : 'no answer'}${a.miss && a.miss.length ? ' · rejected: ' + a.miss.map(m => `"${m}"`).join(', ') : ''}`); });
+      lines.push(`  R${j + 1} [${a.p}] ${a.t ? a.t + ' · ' + nm + (a.r && a.r !== nm ? ` (typed "${a.r}"${a.sug ? ', took suggestion' : ''})` : '') : 'no answer'}${a.miss && a.miss.length ? ' · rejected: ' + a.miss.map(m => `"${m}"`).join(', ') : ''}`); });
     if (r.claims && r.claims.length) lines.push('  FLAGGED: ' + r.claims.map(c => `[${c.p}] "${c.raw}"`).join(', '));
     if (r.unsure && r.unsure.length) lines.push('  SENT FOR REVIEW (AI unsure): ' + r.unsure.map(c => `[${c.p}] "${c.raw}"`).join(', ')); });
   return lines.join('\n'); }
@@ -556,7 +570,7 @@ function openReport() { $('repTxt').value = buildReport(); $('repModal').classLi
 /* ================= RESULTS ================= */
 async function endGame() {
   G.over = true; const rank = rankOf(G.score);
-  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice();
+  const run = { v: 1, ts: Date.now(), day: DAY, mode: G.mode, score: G.score, rank: rank.key, hp: Math.max(0, G.hp), kos: G.kos, alive: G.hp > 0, ans: G.prompts.map((p, i) => { const r = G.res[i], o = { p: p.id, a: r ? r.a : null, t: r ? r.tier : null, pts: r ? r.pts : 0 }; if (r && r.raw && r.tier) o.r = r.raw; if (r && r.sug) o.sug = 1; if (r && r.miss && r.miss.length) o.miss = r.miss; return o; }), claims: (G.claims || []).slice() }; if (G.unsure && G.unsure.length) run.unsure = G.unsure.slice();
   if (Q.get('who')) run.who = Q.get('who');
   if (G.mode === 'daily') localStorage.setItem('ff_daily_' + DAY, JSON.stringify(run));
   window.__lastRun = run;

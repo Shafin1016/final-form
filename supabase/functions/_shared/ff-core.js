@@ -11,7 +11,7 @@
     for (const line of String(text || '').trim().split('\n')) {
       const t = line.trim(), tier = t[0], parts = t.slice(1).split('|').map(x => x.trim()).filter(Boolean);
       if (!(tiers ? tiers[tier] : TIER_ORDER.includes(tier)) || !parts.length) continue;
-      const ans = { tier, name: parts[0], key: norm(parts[0]) }; answers.push(ans);
+      const ans = { tier, name: parts[0], key: norm(parts[0]), alts: parts }; answers.push(ans);
       for (const al of parts) { const k = norm(al); if (k && !keys.has(k)) keys.set(k, ans); }
     }
     return { answers, keys };
@@ -24,7 +24,7 @@
     for (const e of extra || []) {
       if (!e || !e.key || !e.name) continue;
       let ans = p.answers.find(a => a.key === e.key), target;
-      if (!ans) { ans = target = { tier: e.tier || null, name: String(e.name).slice(0, 80), key: e.key, ai: e.status !== 'approved', extra: true, status: e.status }; p.answers.push(ans); }
+      if (!ans) { ans = target = { tier: e.tier || null, name: String(e.name).slice(0, 80), key: e.key, alts: [String(e.name).slice(0, 80)], ai: e.status !== 'approved', extra: true, status: e.status }; p.answers.push(ans); p._sug = null; }
       else if (ans.extra) { ans.status = e.status; ans.ai = e.status !== 'approved'; if (e.tier) ans.tier = e.tier; target = ans; }
       // a new spelling of a hand-written answer: counts as that answer, but stays rarity-capped until a person approves the spelling
       else target = e.status === 'approved' ? ans : Object.assign({}, ans, { ai: true, via: 'alias' });
@@ -52,10 +52,43 @@
   function match(p, raw) { const m = matchKeys(p.keys, raw); if (!m.none || !p.extraKeys || !p.extraKeys.size) return m;
     const e = matchKeys(p.extraKeys, raw); if (e.ans) e.extra = true; return e; }
 
+  // "Did you mean …?" — a looser, order-insensitive comparison used only AFTER match() found nothing.
+  // Never auto-accepts: the player sees the suggestion and confirms it. Returns one answer or null (null when unsure
+  // or when two different answers are equally close, so it never picks between them for the player).
+  const toks = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' and ').split(/[^a-z0-9]+/).filter(t => t && t !== 'the');
+  const NUMW = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10', ii: '2', iii: '3', iv: '4', v: '5', vi: '6', vii: '7', viii: '8', ix: '9', x: '10' };
+  // sequel numbers must agree: "Resident Evil Zero" is never "Resident Evil 3"
+  const nums = ts => ts.map(t => NUMW[t] || (/^\d+$/.test(t) ? String(+t) : (t.match(/\d+/g) || []).join(','))).filter(Boolean).sort().join('|');
+  function sugIndex(p) {
+    if (p._sug && p._sug.n === p.answers.length) return p._sug;
+    const items = [], freq = new Map();
+    for (const ans of p.answers) { const seen = new Set();
+      for (const alt of ans.alts || [ans.name]) { const ts = toks(alt); if (!ts.length) continue; items.push({ ans, key: ts.join(''), sorted: ts.slice().sort().join(''), ts, num: nums(ts) }); for (const t of ts) seen.add(t); }
+      for (const t of seen) freq.set(t, (freq.get(t) || 0) + 1); }
+    for (const [key, ans] of (p.extraKeys || [])) items.push({ ans, key, sorted: key, ts: [key], num: nums([key]) });
+    return (p._sug = { n: p.answers.length, items, freq });
+  }
+  function suggest(p, raw) {
+    const it = toks(raw), k = it.join(''), sk = it.slice().sort().join('');
+    if (k.length < 5) return null;      // short guesses are too easy to confuse
+    const ix = sugIndex(p), nk = nums(it); let best = null, bs = Infinity, tie = false;
+    const take = (ans, sc) => { if (sc < bs - 1e-9) { best = ans; bs = sc; tie = false; } else if (sc < bs + 1e-9 && best && ans.key !== best.key) tie = true; };
+    for (const x of ix.items) {
+      if (x.key.length < 3 || x.num !== nk) continue;
+      for (const [a, b] of [[k, x.key], [sk, x.sorted]]) {          // as typed, and with words in any order
+        const L = Math.max(a.length, b.length), tol = Math.min(4, Math.floor(L * 0.3));   // roughly 1 slip per 3–4 letters
+        const d = a === b ? 0 : osa(a, b, tol); if (d <= tol) take(x.ans, d / L + (a === sk && a !== k ? 0.02 : 0));
+      }
+      // one remembered word with a slip ("Socrattes"), only if that word belongs to a single answer
+      if (it.length === 1 && k.length >= x.key.length * 0.45) for (const t of x.ts) if (t.length >= 5 && ix.freq.get(t) === 1) { const d = osa(k, t, 1); if (d <= 1) take(x.ans, 0.3 + d * 0.05); }
+    }
+    return best && !tie ? best : null;
+  }
+
   // rarity safeguard: an answer nobody has reviewed yet can never score above this tier,
   // so a freshly AI-validated answer doesn't land at Mythic just because no one has given it before
   const UNREVIEWED_CAP = 'B';
   function capTier(ans, tier) { if (!ans || !ans.ai) return tier; return TIER_ORDER.indexOf(tier) < TIER_ORDER.indexOf(UNREVIEWED_CAP) ? UNREVIEWED_CAP : tier; }
 
-  root.FFCore = { norm, parseAnswers, addExtra, osa, matchKeys, match, capTier, UNREVIEWED_CAP, TIER_ORDER };
+  root.FFCore = { norm, parseAnswers, addExtra, osa, matchKeys, match, suggest, capTier, UNREVIEWED_CAP, TIER_ORDER };
 })(typeof window !== 'undefined' ? window : globalThis);

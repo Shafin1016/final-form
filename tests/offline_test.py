@@ -11,6 +11,8 @@ async def main():
         b = await p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'), args=['--no-sandbox'])
         pg = await b.new_page(); errs = []; net = []
         pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('request', lambda r: net.append(r.url) if not r.url.startswith(BASE) and 'fonts.g' not in r.url else None)
+        # run as if no backend is configured, whatever ff-config.js says
+        await pg.route('**/ff-config.js', lambda r: r.fulfill(content_type='text/javascript', body="window.FF_CONFIG = { api: '' };"))
         await pg.goto(BASE + '/index.html?fast&set=consoles,consoles,consoles,consoles,consoles,consoles,consoles')
         await pg.wait_for_function("!document.getElementById('playDaily').disabled", timeout=90000)
         await pg.click('#playPractice'); await pg.wait_for_selector('#ans', state='visible'); await pg.wait_for_timeout(300)
