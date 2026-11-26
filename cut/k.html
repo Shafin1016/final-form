@@ -557,12 +557,14 @@ const DP = {
   slump: { lean: .95, head: .75, aF: .05, fF: .05, aB: .02, fB: .02, lF: 1.5, sF: -.1, lB: -.25, sB: -1.6 },
   stiff: { lean: -.08, head: -.2, aF: .1, fF: .12, aB: -.08, fB: -.05, lF: .06, sF: 0, lB: -.06, sB: 0 },
   prone: { lean: 1.5, head: .05, aF: 1.42, fF: 1.5, aB: 1.15, fB: 1.35, lF: -1.42, sF: -.08, lB: -1.5, sB: -.12 },
+  timber: { lean: .04, head: .12, aF: .18, fF: .22, aB: .1, fB: .14, lF: .03, sF: 0, lB: -.03, sB: 0 },
   hang:  { lean: -.18, head: -.7, aF: .55, fF: .35, aB: .5, fB: .3, lF: .1, sF: .05, lB: -.08, sB: -.02 },
 };
 // per rival: pose track, how the body tips over (rotation about a ground pivot), fade, dissolve
 const DEATH = {
-  oni:    { poses: [[0, null], [.32, DP.reel, 'o'], [.5, DP.reel], [.95, DP.kneel, 'i'], [1.38, DP.slump, 'io'], [1.76, DP.prone, 'i']],
-            fade: [1.98, 2.7], ash: 1 },
+  // goes rigid and falls forward flat on his face like a felled tree, legs straight
+  oni:    { poses: [[0, null], [.32, DP.reel, 'o'], [.55, DP.reel], [.9, DP.timber, 'io']],
+            tip: [.9, 1.48, -1.5], pivot: 'feet', fade: [1.85, 2.6], ash: 1 },
   warden: { poses: [[0, null], [.28, DP.reel, 'o'], [.75, DP.stiff, 'io']],
             tip: [.85, 1.32, 1.42], pivot: 'back', fade: [1.34, 1.46], cracks: [.4, 1.3] },
   hollow: { poses: [[0, null], [.22, DP.reel, 'o'], [.6, DP.hang, 'io']],
@@ -572,11 +574,11 @@ const KIND = () => DEATH[RIVAL_KIND] ? RIVAL_KIND : 'oni';
 function rivalAt(t) { const D = DEATH[KIND()], keys = D.poses.map(k => k[1] ? k : [k[0], RP.stance]);
   const air = D.float ? D.float[2] * E.io(prog(t, D.float[0], D.float[1])) : 0;
   const jit = (D.glitch && t > D.glitch[0] && t < D.glitch[1]) || t < .3 ? (rnd() - .5) * (t < .3 ? 6 * (1 - t / .3) : 7) : 0;
-  return { x: RX + jit + (t < .32 ? 18 * E.o(t / .32) : 18), p: track(t, keys), air, frozen: false }; }
+  const back = KIND() === 'oni' ? 80 : 18; return { x: RX + jit + back * E.o(prog(t, 0, KIND() === 'oni' ? .8 : .32)), p: track(t, keys), air, frozen: false }; }
 function heroAt(t) { return { x: HX, f: 1, p: track(t, [[0, HP.ready], [2.0, HP.ready], [2.6, HP.stand, 'io']]), air: 0, hidden: false, eyesClosed: false }; }
 // how the defeated rival is drawn right now: rotation about a ground pivot, opacity, dissolve line
 function deathLook(t, J) { const D = DEATH[KIND()]; let rot = 0, alpha = 1, cut = null, pv = [J.hip[0], G];
-  if (D.tip) { const [t0, t1, ang] = D.tip; rot = ang * E.i(prog(t, t0, t1)); pv = D.pivot === 'front' ? [J.kF[0], G] : [J.ftB[0], G]; }
+  if (D.tip) { const [t0, t1, ang] = D.tip; rot = ang * E.i(prog(t, t0, t1)); pv = D.pivot === 'feet' ? [(J.ftF[0] + J.ftB[0]) / 2, G] : [J.ftB[0], G]; }
   if (D.fade) alpha = 1 - prog(t, D.fade[0], D.fade[1]);
   if (D.dissolve) { const k = prog(t, D.dissolve[0], D.dissolve[1]); cut = lerp(G + 10, J.head[1] - 46 * RS, E.io(k)); if (k >= 1) alpha = 0; }
   return { rot, alpha, cut, pv }; }
@@ -593,10 +595,9 @@ let dmg = [];
 const EV = {
   oni: [
     [0, () => { cut(1.1, RX - 60, H / 2 + 10); camTo(1.04, RX - 90, H / 2 + 6, 1.4); shake = 10; }],
-    [.95, () => { shake = 12; spawn(18, () => ({ x: RX + rand(-50, 50), y: G - 2, vx: rand(-200, 200), vy: rand(-160, -40), g: 600, life: rand(.4, .9), s: rand(2.5, 5), c: 'rgba(140,144,150,.55)' })); }],
-    [1.76, () => { shake = 26; flash = .1; flashC = '#ffffff'; camTo(1.0, (HX + RX) / 2, H / 2, 1.2);
-      ripples.push({ x: RX - 60, y: G, r: 420, life: .8, max: .8, ry: .09, w: 3, col: '#ffffff' });
-      spawn(46, () => ({ x: RX - 70 + rand(-110, 110), y: G - 2, vx: rand(-380, 380), vy: rand(-240, -50), g: 700, life: rand(.5, 1.1), s: rand(3, 7), c: pick(['rgba(150,154,160,.55)', 'rgba(110,114,120,.5)']) })); }],
+    [1.47, () => { shake = 26; flash = .1; flashC = '#ffffff'; camTo(1.0, (HX + RX) / 2, H / 2, 1.2);
+      ripples.push({ x: RX - 40, y: G, r: 420, life: .8, max: .8, ry: .09, w: 3, col: '#ffffff' });
+      spawn(52, () => ({ x: RX - 50 + rand(-130, 120), y: G - 2, vx: rand(-380, 380), vy: rand(-240, -50), g: 700, life: rand(.5, 1.1), s: rand(3, 7), c: pick(['rgba(150,154,160,.55)', 'rgba(110,114,120,.5)']) })); }],
   ],
   warden: [
     [0, () => { cut(1.1, RX - 60, H / 2 + 10); camTo(1.04, RX - 40, H / 2 + 4, 1.4); shake = 14; flash = .12; flashC = '#ffffff';
@@ -612,8 +613,8 @@ const EV = {
   ],
 };
 const SNDS = {
-  oni: [[0, () => { FX.hit(0, .55); }], [.4, () => { FX.growl(0, 1.1, .5); }], [.93, () => { FX.stomp(0, .5); FX.debris(.02, .35, .5); }],
-        [1.74, () => { FX.stomp(0, .85); FX.sub(0, 56, 28, 1.3, .55, 3); FX.debris(.02, .65, .8); }], [1.95, () => { FX.whoosh(0, 1.2, 420, 1400, .22, { p0: .3, p1: -.2 }); }]],
+  oni: [[0, () => { FX.hit(0, .55); }], [.4, () => { FX.growl(0, 1.1, .5); }], [.9, () => { FX.whoosh(0, .6, 300, 900, .3, { p0: .2, p1: -.3 }); }],
+        [1.45, () => { FX.stomp(0, .85); FX.sub(0, 56, 28, 1.3, .55, 3); FX.debris(.02, .65, .8); }], [1.85, () => { FX.whoosh(0, 1.2, 420, 1400, .22, { p0: .3, p1: -.2 }); }]],
   warden: [[0, () => { FX.hit(0, .7); FX.scrape(.05, .5); }], [.45, () => { FX.crackle(0, .8, .3); }],
            [1.3, () => { FX.hit(0, .9); FX.debris(.01, .9, 1.1); FX.sub(.01, 60, 30, 1.2, .5, 3); FX.scrape(.08, .45); }]],
   hollow: [[0, () => { FX.hit(0, .45); }], [.2, () => { FX.eerie(0, 1.8, .35); }], [.85, () => { FX.suck(0, 1.3, .35); FX.whoosh(.2, 1.4, 300, 2200, .25, { p0: 0, p1: .4 }); }]],
@@ -718,7 +719,7 @@ function render(sdt) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); return;
   }
   ctx.drawImage(bg, -80, -80, W + 160, H + 160);
-  ctx.save(); ctx.beginPath(); ctx.rect(-80, G, W + 160, 220); ctx.clip(); ctx.translate(0, G * 2); ctx.scale(1, -1); ctx.globalAlpha = .22; drawHero(ctx, hJ, { ink: 0 }); if (DL.alpha > 0 && DL.cut == null) { ctx.globalAlpha = .22 * DL.alpha; ctx.translate(DL.pv[0], DL.pv[1]); ctx.rotate(-DL.rot); ctx.translate(-DL.pv[0], -DL.pv[1]); drawRival(ctx, rJ, { ink: 0 }); } ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(-80, G, W + 160, 220); ctx.clip(); ctx.translate(0, G * 2); ctx.scale(1, -1); ctx.globalAlpha = .22; drawHero(ctx, hJ, { ink: 0 }); if (DL.alpha > 0 && DL.cut == null) { ctx.globalAlpha = .22 * DL.alpha; ctx.translate(DL.pv[0], DL.pv[1]); ctx.rotate(DL.rot); ctx.translate(-DL.pv[0], -DL.pv[1]); drawRival(ctx, rJ, { ink: 0 }); } ctx.restore();
   for (const [x, w, a] of [[hJ.hip[0], 34, .5], [(st.bodyPts[2] || rJ.hip)[0], 64 * (1 + Math.abs(DL.rot) * .6), .55 * DL.alpha * (DL.cut == null ? 1 : prog(DL.cut, rJ.head[1], G))]]) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, G + 2, w, w * .1, 0, 0, 7); ctx.fill(); ctx.restore(); }
   // the hero's skid marks + dust
   if (st.hit) { const k = prog(t, T.hook, T.hook + .9); ctx.save(); ctx.strokeStyle = 'rgba(25,26,29,.55)'; ctx.lineWidth = 3; ctx.lineCap = 'round'; for (const dy of [0, 5]) { ctx.beginPath(); ctx.moveTo(HX - 12, G + 1 + dy); ctx.lineTo(hJ.ftB[0], G + 1 + dy); ctx.stroke(); } ctx.restore(); if (k < 1 && rnd() < .9) spawn(2, () => ({ x: hJ.ftB[0] + rand(-8, 8), y: G - 3, vx: rand(-20, 110), vy: rand(-90, -20), g: 200, life: rand(.4, .8), s: rand(2, 4), c: 'rgba(150,150,155,.5)' })); }
