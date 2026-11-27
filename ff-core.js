@@ -99,7 +99,22 @@
   // rarity safeguard: an answer nobody has reviewed yet can never score above this tier,
   // so a freshly AI-validated answer doesn't land at Mythic just because no one has given it before
   const UNREVIEWED_CAP = 'B';
+  // Rarity by RANK inside one prompt: answers sorted from most to least popular, each tier takes a fixed slice of
+  // the list, so every prompt is a pyramid (lots of Common/Uncommon, a few Legendary, 1-3 Mythic).
+  // list: [{ key, sh: share of players 0..1 (null before a prompt has enough plays), hand: hand-written tier }]
+  const QUOTA = [['E', 0.30], ['D', 0.25], ['C', 0.20], ['B', 0.14]];
+  function mythicSlots(n) { return n < 4 ? 0 : n < 30 ? 1 : n < 60 ? 2 : 3; }
+  function rankTiers(list) {
+    const ord = 'EDCBAS', n = list.length, map = new Map();
+    const sorted = list.slice().sort((x, y) => ((y.sh == null ? -1 : y.sh) - (x.sh == null ? -1 : x.sh)) || ord.indexOf(x.hand) - ord.indexOf(y.hand) || (x.key < y.key ? -1 : 1));
+    const nS = mythicSlots(n), nA = n < 8 ? 0 : Math.max(1, Math.round(n * 0.08)), m = n - nS - nA, W = QUOTA.reduce((a, q) => a + q[1], 0); let i = 0;
+    QUOTA.forEach(([t, q], j) => { const take = j === QUOTA.length - 1 ? m - i : Math.min(m - i, Math.max(t === 'E' && m ? 1 : 0, Math.round(m * q / W))); for (let k = 0; k < take; k++) sorted[i + k].tier = t; i += Math.max(0, take); });
+    for (; i < n; i++) sorted[i].tier = i >= n - nS ? 'S' : 'A';
+    // never call something rare when a real share of players gives it
+    for (const r of sorted) { if (r.sh != null && r.tier === 'S' && r.sh >= 0.005) r.tier = 'A'; if (r.sh != null && r.tier === 'A' && r.sh >= 0.02) r.tier = 'B'; map.set(r.key, r.tier); }
+    return { map, sorted };
+  }
   function capTier(ans, tier) { if (!ans || !ans.ai) return tier; return TIER_ORDER.indexOf(tier) < TIER_ORDER.indexOf(UNREVIEWED_CAP) ? UNREVIEWED_CAP : tier; }
 
-  root.FFCore = { norm, parseAnswers, addExtra, osa, matchKeys, match, suggest, capTier, UNREVIEWED_CAP, TIER_ORDER };
+  root.FFCore = { rankTiers, mythicSlots, norm, parseAnswers, addExtra, osa, matchKeys, match, suggest, capTier, UNREVIEWED_CAP, TIER_ORDER };
 })(typeof window !== 'undefined' ? window : globalThis);

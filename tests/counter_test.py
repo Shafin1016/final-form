@@ -1,4 +1,4 @@
-"""Damage rules: HP 100; Legendary costs nothing; Common/Uncommon hits get countered for 20 (unless they K.O.);
+"""Damage rules: HP 100; Legendary costs nothing; Common hits get countered for 15 and Uncommon for 5 (unless they K.O.);
 misses cost 20. Fast mode for the numbers, plus one real-speed run to see the counterattack banner and taunt.
    python3 -m http.server 8765 &   then   python3 tests/counter_test.py"""
 import asyncio, os, sys
@@ -20,7 +20,7 @@ async def main():
         ok('player starts at 100 HP', await pg.evaluate("__ff.state().hp") == 100 and '100 / 100' in await pg.text_content('#hpTxt'))
         T = await pg.evaluate("Object.fromEntries(Object.entries(__ff.TIERS).map(([k,v])=>[k,{taken:v.taken,counter:!!v.counter,cuts:v.cuts}]))")
         ok('Legendary costs nothing, only one Legendary attack', T['A']['taken'] == 0 and T['A']['cuts'] == ['a'], str(T['A']))
-        ok('Common and Uncommon are countered for 20', T['E'] == {'taken': 20, 'counter': True, 'cuts': ['e', 'e2']} and T['D']['taken'] == 20 and T['D']['counter'], str(T['E']) + str(T['D']))
+        ok('Common countered for 15, Uncommon for 5', T['E'] == {'taken': 15, 'counter': True, 'cuts': ['e', 'e2']} and T['D']['taken'] == 5 and T['D']['counter'], str(T['E']) + str(T['D']))
         # force tiers to check the arithmetic
         async def hit(tier, rv=200):
             await pg.evaluate(f"(()=>{{const G=__ff.state();G.rv={rv};}})()")
@@ -29,7 +29,7 @@ async def main():
             await pg.wait_for_function(f"__ff.state().round==={r0+1}", timeout=10000); await pg.wait_for_timeout(80)
             return hp0, await pg.evaluate("__ff.state().hp"), await pg.evaluate(f"__ff.state().res[{r0}].tier")
         await pg.evaluate("__ff.TIERS && (window.__origDyn = 1)")
-        h0, h1, t = await hit('E'); ok(f'{t} hit -> countered -20', h1 == h0 - 20 or t not in 'DE', f'{h0}->{h1} tier {t}')
+        h0, h1, t = await hit('E'); ok(f'{t} hit -> countered', h1 == h0 - {'E': 15, 'D': 5}.get(t, 0) or t not in 'DE', f'{h0}->{h1} tier {t}')
         h0, h1, t = await hit('D', 10); ok(f'{t} hit that K.O.s is not countered', h1 == h0 or t not in 'DE', f'{h0}->{h1} tier {t}')
         ok('no page errors (fast)', not errs, '; '.join(errs)); await pg.close()
         # real speed: see the counterattack
@@ -43,7 +43,7 @@ async def main():
             ok('counterattack banner shown', await pg.text_content('#bannerS') and 'hits back' in await pg.text_content('#bannerS'), await pg.text_content('#bannerS'))
             ok('rival taunts', len((await pg.text_content('#sayTxt')) or '') > 3, await pg.text_content('#sayTxt'))
             await pg.wait_for_selector('#nextBtn', state='visible', timeout=20000)
-            ok('HP went 100 -> 80', await pg.evaluate("__ff.state().hp") == 80)
+            hp = await pg.evaluate("__ff.state().hp"); ok('HP went down by the counter', hp == 100 - {'E': 15, 'D': 5}[tier], f'{tier}: 100 -> {hp}')
         else: print('  (skipped visual check: answer landed as', tier, ')')
         ok('no page errors (real speed)', not errs, '; '.join(errs))
         await b.close()

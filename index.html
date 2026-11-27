@@ -298,7 +298,7 @@ button{font-family:inherit;cursor:pointer}
 
 <div class="modal" id="howModal"><div class="card"><h3>How to play</h3>
 <p>You get seven prompts — anime and video games — starting easy and getting harder each round. Type any valid answer within 30 seconds.</p>
-<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Common and Uncommon hits get countered: the rival strikes back for 20 HP.</p>
+<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Common and Uncommon hits get countered: the rival strikes back for 15 HP after a Common hit and 5 HP after an Uncommon one.</p>
 <p style="margin-top:10px">Three answers we don't recognise, or the timer running out, and the rival counterattacks. Damage carries over between rounds — knock a rival out and the next one steps in: the Oni Brute, then the Iron Warden, then the Hollow, and round again. Lose all your HP and the run ends.</p>
 <p style="margin-top:10px">Your score is the total damage you deal. It sets your rank: Bronze, Silver, Gold or Platinum.</p>
 <div style="margin-top:16px;text-align:right"><button class="btn main" id="howClose">Got it</button></div></div></div>
@@ -332,8 +332,8 @@ const TIERS = {
   A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 0, cuts: ['a'], abil: { a: 'Rock' } },
   B: { name: 'Epic', col: '#b98cff', pts: 50, taken: 0, cuts: ['b'], abil: { b: 'Malicious Fate' } },
   C: { name: 'Rare', col: '#6aa8ff', pts: 35, taken: 0, cuts: ['c'], abil: { c: 'Phantom Rush' } },
-  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 20, counter: true, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
-  E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 20, counter: true, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
+  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 5, counter: true, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
+  E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 15, counter: true, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
 };
 const ORDER = ['S', 'A', 'B', 'C', 'D', 'E'];
 const MY = k => k === 'S' ? ' myth' : '', MYT = k => k === 'S' ? ' mythT' : '';
@@ -434,7 +434,6 @@ async function loadExtras(prompts) { if (!API || CONF.aiCheck === false) return;
 // The starter pool's weight fades as real people play: at 1,000 real plays of a prompt it is gone.
 const SEED = window.FF_SEED || null, SEED_FADE = 1000, MIN_SAMPLE = 50;
 // tier cutoffs = share of players who gave that answer for that prompt
-const CUTS = [['S', 0.001], ['A', 0.01], ['B', 0.04], ['C', 0.10], ['D', 0.25], ['E', 1.01]];
 function blend(live) { live = live || emptyStats(); const out = emptyStats(), gf = SEED ? Math.max(0, 1 - live.n / SEED_FADE) : 0;
   out.liveN = live.n; out.seedW = gf; out.n = live.n + (SEED ? SEED.n * gf : 0);
   for (let i = 0; i < NBINS; i++) out.bins[i] = (live.bins[i] || 0) + (SEED ? (SEED.bins[i] || 0) * gf : 0);
@@ -446,8 +445,14 @@ function blend(live) { live = live || emptyStats(); const out = emptyStats(), gf
 let EFF = blend(null);
 async function refreshLive() { try { const r = await Store.stats(); EFF = blend(r && r.stats); } catch (e) { } }
 function shareOf(pid, key) { const pn = EFF.pn[pid] || 0; return pn ? ((EFF.ans[pid] || {})[key] || 0) / pn : null; }
-function dynTier(p, ans) { const pn = EFF.pn[p.id] || 0; let t = ans.tier || window.FFCore.UNREVIEWED_CAP;
-  if (pn >= MIN_SAMPLE) { const sh = shareOf(p.id, ans.key); t = 'E'; for (const [k, c] of CUTS) if (sh < c) { t = k; break; } }
+// tier table per prompt (rank-based, see FFCore.rankTiers); rebuilt when the stats or the answer list change
+const TT = new Map();
+function tierTable(p) { const pn = EFF.pn[p.id] || 0, live = pn >= MIN_SAMPLE, ck = (live ? pn : 0) + ':' + p.answers.length; let c = TT.get(p.id); if (c && c.ck === ck && c.eff === EFF) return c;
+  const r = window.FFCore.rankTiers(p.answers.filter(a => !a.ai).map(a => ({ key: a.key, sh: live ? (shareOf(p.id, a.key) || 0) : null, hand: a.tier || 'C' })));
+  c = { ck, eff: EFF, live, ...r }; TT.set(p.id, c); return c; }
+function dynTier(p, ans) { const c = tierTable(p); let t = c.map.get(ans.key);
+  if (!t) { t = ans.tier || window.FFCore.UNREVIEWED_CAP;   // an answer added later (AI-checked): slot it in by its share
+    if (c.live) { const sh = shareOf(p.id, ans.key) || 0, hit = c.sorted.find(r => r.sh <= sh); t = hit ? hit.tier : 'A'; } }
   // answers no person has reviewed yet (AI-validated) never score above the cap, so "nobody has said it yet" can't mean Mythic
   return capTier(ans, t); }
 
@@ -508,7 +513,7 @@ $('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); }
 /* ================= HOME ================= */
 $('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 $('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
-$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O.' : T.pts + ' dmg'}<span class="back">${T.taken ? `counter −${T.taken} HP` : 'no hit back'}</span></span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>3 wrong guesses or time out · Enemy Counter</small></span><span class="pt" style="color:var(--X)">0 dmg<span class="back">rival hits −${CFG.missDmg} HP</span></span></div>`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'rarest 1–3 answers', A: 'next-rarest ~8%', B: 'rare ~14%', C: 'middle ~20%', D: 'popular ~25%', E: 'most popular ~30%' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O.' : T.pts + ' dmg'}<span class="back">${T.taken ? `counter −${T.taken} HP` : 'no hit back'}</span></span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>3 wrong guesses or time out · Enemy Counter</small></span><span class="pt" style="color:var(--X)">0 dmg<span class="back">rival hits −${CFG.missDmg} HP</span></span></div>`;
 $('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
 const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
@@ -777,7 +782,7 @@ async function drawCard(r) {
   // tier chips
   const n = r.ans.length, sz = 96, gap = 18, x0 = W / 2 - (n * sz + (n - 1) * gap) / 2;
   r.ans.forEach((a, i) => { const X = x0 + i * (sz + gap), Y = 570; rr(X, Y, sz, sz, 18);
-    if (a.t === 'S') { const g = x.createLinearGradient(X, Y, X + sz, Y + sz); ['#ff7eb6', '#ffb86b', '#fff07a', '#7dffb2', '#6fd8ff', '#a98bff'].forEach((col, j, L) => g.addColorStop(j / (L - 1), col)); x.fillStyle = g; x.shadowColor = 'rgba(255,170,230,.8)'; x.shadowBlur = 30; }
+    if (a.t === 'S') { const g = x.createLinearGradient(X, Y, X + sz, Y + sz); ['#ff7eb6', '#ffb86b', '#fff07a', '#7dffb2', '#6fd8ff', '#a98bff'].forEach((col, j, L) => g.addColorStop(j / (L.length - 1), col)); x.fillStyle = g; x.shadowColor = 'rgba(255,170,230,.8)'; x.shadowBlur = 30; }
     else x.fillStyle = a.t ? TIERS[a.t].col : '#3b2226';
     x.fill(); x.shadowBlur = 0; x.fillStyle = a.t ? '#0a0a0c' : '#ff8a7a'; x.font = '800 46px "Shippori Mincho B1", Georgia, serif'; x.fillText(a.t || '✕', X + sz / 2, Y + sz / 2 + 16);
     if (a.t === 'S') { x.fillStyle = '#fff'; [[X + 10, Y + 14, 7], [X + sz - 12, Y + sz - 16, 6], [X + sz - 16, Y + 12, 4]].forEach(([sx, sy, sr]) => { x.beginPath(); x.moveTo(sx, sy - sr * 2); x.lineTo(sx + sr * .5, sy - sr * .5); x.lineTo(sx + sr * 2, sy); x.lineTo(sx + sr * .5, sy + sr * .5); x.lineTo(sx, sy + sr * 2); x.lineTo(sx - sr * .5, sy + sr * .5); x.lineTo(sx - sr * 2, sy); x.lineTo(sx - sr * .5, sy - sr * .5); x.closePath(); x.fill(); }); } });

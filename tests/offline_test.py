@@ -20,7 +20,9 @@ async def main():
         ok('unknown answer is an instant miss', await pg.evaluate("__ff.state().strikes") == 1)
         for k, a in enumerate(['PlayStation 2', 'Xbox', 'GameCube', 'Sega Saturn', 'Wii', 'Game Boy', 'Nintendo 64']):
             await pg.fill('#ans', a); await pg.press('#ans', 'Enter')
-            if k < 6: await pg.wait_for_function(f"__ff.state().round==={k+1}&&!__ff.state().locked", timeout=10000); await pg.wait_for_timeout(80)
+            if k < 6:
+                await pg.wait_for_function(f"(__ff.state().round==={k+1}&&!__ff.state().locked) || __ff.state().over", timeout=10000); await pg.wait_for_timeout(80)
+                if await pg.evaluate("!!__ff.state().over"): break   # popular answers get countered: a run can end early
         await pg.wait_for_function("window.__resultsReady === true", timeout=20000)
         ok('results shown, saved on device', 'device' in (await pg.text_content('#foot')))
         ok('no outside network calls', not net, ', '.join(net)); ok('no page errors', not errs, '; '.join(errs))
