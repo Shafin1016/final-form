@@ -181,6 +181,15 @@ button{font-family:inherit;cursor:pointer}
 .recap .pp{text-align:right;font:800 13px Inter;white-space:nowrap}
 .recap .pct{color:var(--muted);font-size:11px;font-weight:500;display:block}
 .rare{font-size:11px;color:var(--muted);margin-top:4px}.rare em{font-style:normal;color:#e6e4dd}
+.abtog{margin-top:7px;background:none;border:1px solid var(--line);color:#cfcdc6;font:600 11px Inter;letter-spacing:.04em;padding:5px 10px;border-radius:7px;cursor:pointer}.abtog:hover{border-color:#8a8780;color:#fff}
+.ab-row td{padding:4px 8px 14px!important;border-top:none!important}
+.ab-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.ab-chip{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:600 12px Inter;color:var(--c,#cfcdc6);cursor:pointer}.ab-chip b{font-weight:500;opacity:.7;margin-left:5px}.ab-chip.on{border-color:var(--c,#fff);box-shadow:0 0 0 1px var(--c,#fff) inset;background:rgba(255,255,255,.07)}
+.ab-q{width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;color:#e9e6df;font:14px Inter;padding:9px 12px;outline:none}.ab-q:focus{border-color:#8a8780}
+.ab-list{max-height:300px;overflow-y:auto;margin-top:8px;padding-right:4px}
+.ab-it{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04)}.ab-it .tc{flex:none}.ab-it .nm{flex:1;color:#e6e4dd;font-size:13.5px}.ab-it.me .nm{color:#fff;font-weight:700}.ab-it.me .nm::after{content:'  · your answer';font-weight:500;font-size:11px;color:var(--muted)}
+.ab-it .sh{font-size:11px;color:var(--muted);white-space:nowrap}.ab-it .pt{font:800 12px Inter;width:42px;text-align:right}
+.ab-foot{font-size:11px;color:var(--muted);margin-top:8px}
 .res-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .chal{margin:18px 0 0;padding:16px 18px;border:1px solid rgba(255,211,92,.45);border-radius:14px;background:linear-gradient(180deg,rgba(40,33,14,.92),rgba(14,16,22,.92));backdrop-filter:blur(6px);max-width:520px;box-shadow:0 16px 40px -20px #000}
 .chal small{display:block;font:700 10px Inter;letter-spacing:.24em;text-transform:uppercase;color:#ffd35c;margin-bottom:6px}
@@ -678,6 +687,23 @@ async function endGame() {
   show('results'); renderResults(run, null);
   const where = await Store.save(run); const all = await Store.stats(); if (all) { all.stats = blend(all.stats); EFF = all.stats; } renderResults(run, all, where);
 }
+// Krillion-style answer browser for one prompt: tier chips with counts, search, scrollable list (rarest tier first)
+function answerBrowser(box) {
+  if (box.dataset.ready) return; box.dataset.ready = 1;
+  const p = PROMPTS.find(x => x.id === box.dataset.p), mine = box.dataset.a;
+  const pct = v => v == null ? '' : (v *= 100) < 1 ? (v < 0.1 ? '<0.1%' : v.toFixed(1) + '%') : Math.round(v) + '%';
+  const list = p.answers.filter(x => !x.ai || x.key === mine).map(x => ({ x, t: dynTier(p, x), sh: shareOf(p.id, x.key) }))
+    .sort((a, b) => ORDER.indexOf(a.t) - ORDER.indexOf(b.t) || (a.sh || 0) - (b.sh || 0) || a.x.name.localeCompare(b.x.name));
+  const cnt = {}; list.forEach(r => cnt[r.t] = (cnt[r.t] || 0) + 1);
+  let tier = 'all', q = '';
+  box.innerHTML = `<div class="ab-chips"><button type="button" class="ab-chip on" data-t="all">All<b>${list.length}</b></button>${ORDER.filter(k => cnt[k]).map(k => `<button type="button" class="ab-chip" data-t="${k}" style="--c:${TIERS[k].col}"><span class="${MYT(k).trim()}">${TIERS[k].name}</span><b>${cnt[k]}</b></button>`).join('')}</div><input class="ab-q" type="search" placeholder="Search all answers…" autocomplete="off"><div class="ab-list"></div><div class="ab-foot"></div>`;
+  const L = box.querySelector('.ab-list'), F = box.querySelector('.ab-foot'), I = box.querySelector('.ab-q');
+  const draw = () => { const nq = q.toLowerCase().trim(), rows = list.filter(r => (tier === 'all' || r.t === tier) && (!nq || r.x.name.toLowerCase().includes(nq) || (r.x.alts || []).some(a => String(a).toLowerCase().includes(nq))));
+    L.innerHTML = rows.map(r => { const T = TIERS[r.t]; return `<div class="ab-it${r.x.key === mine ? ' me' : ''}"><span class="tc${MY(r.t)}" style="background:${T.col}">${r.t}</span><span class="nm">${esc(r.x.name)}</span><span class="sh">${r.sh != null ? pct(r.sh) + ' said this' : ''}</span><span class="pt" style="color:${T.col}">+${T.pts}</span></div>`; }).join('') || '<div class="ab-foot">No answers match.</div>';
+    F.textContent = `${rows.length} of ${list.length} answers`; };
+  box.querySelectorAll('.ab-chip').forEach(c => c.onclick = () => { tier = c.dataset.t; box.querySelectorAll('.ab-chip').forEach(o => o.classList.toggle('on', o === c)); I.placeholder = `Search ${tier === 'all' ? 'all' : TIERS[tier].name} answers…`; draw(); });
+  I.oninput = () => { q = I.value; draw(); }; draw();
+}
 function renderResults(run, all, where) {
   const rank = rankOf(run.score), ri = RANKS.indexOf(rank), next = RANKS[ri + 1];
   const md = $('medal'); md.className = 'medal ' + rank.key; md.style.setProperty('--m-c', rank.c); md.style.setProperty('--m-i', rank.i); $('rankName').style.setProperty('--m-t', rank.t); $('rankName').textContent = rank.name;
@@ -698,7 +724,8 @@ function renderResults(run, all, where) {
   const P = id => PROMPTS.find(p => p.id === id);
   $('recap').innerHTML = run.ans.map((a, i) => { const p = P(a.p), T = a.t ? TIERS[a.t] : null, tot = S.pn[a.p] || 0, cnt = a.a ? ((S.ans[a.p] || {})[a.a] || 0) : 0;
     const ansName = a.a ? (p.answers.find(x => x.key === a.a) || {}).name : null, rare = p.answers.filter(x => x.key !== a.a && !x.ai && ['S', 'A'].includes(dynTier(p, x))).sort((x, y) => (shareOf(p.id, x.key) || 0) - (shareOf(p.id, y.key) || 0) || 'SABCDE'.indexOf(x.tier) - 'SABCDE'.indexOf(y.tier)).slice(0, 3).map(x => x.name);
-    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div></td><td class="aa">${ansName ? (a.t === 'S' ? `<span class="mythT">${ansName}</span>` : ansName) : '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc${T ? MY(a.t) : ''}" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr>`; }).join('');
+    return `<tr><td class="n">${i + 1}</td><td><div class="qq">${p.q}<small>${p.cat} · ${p.src}</small></div><div class="rare">Rarest picks: <em>${rare.join(', ') || '—'}</em></div><button type="button" class="abtog" data-i="${i}">All answers ▾</button></td><td class="aa">${ansName ? (a.t === 'S' ? `<span class="mythT">${ansName}</span>` : ansName) : '<span style="color:var(--muted)">No answer</span>'}${a.miss && a.miss.length ? `<div class="misses">${a.miss.map(m => { const on = (run.claims || []).some(c => c.p === a.p && c.raw === m); return `<span><s>✕ ${esc(m)}</s><button type="button" class="claim${on ? ' on' : ''}" data-p="${a.p}" data-raw="${esc(m)}">${on ? 'Flagged ✓' : 'I think this is an answer'}</button></span>`; }).join('')}</div>` : ''}</td><td><span class="tc${T ? MY(a.t) : ''}" style="background:${T ? T.col : 'var(--X)'}">${a.t || '✕'}</span></td><td class="pp" style="color:${T ? T.col : 'var(--muted)'}">+${a.pts}${a.a && tot > 1 ? `<span class="pct">${(v => v < 1 ? (v < 0.1 ? '<0.1' : v.toFixed(1)) : Math.round(v))(cnt / tot * 100)}% said this</span>` : ''}</td></tr><tr class="ab-row" hidden><td colspan="5"><div class="ab" data-p="${a.p}" data-a="${a.a || ''}"></div></td></tr>`; }).join('');
+  $('recap').querySelectorAll('.abtog').forEach(b => b.onclick = () => { const row = b.closest('tr').nextElementSibling, open = row.hidden; row.hidden = !open; b.textContent = open ? 'Hide answers ▴' : 'All answers ▾'; if (open) answerBrowser(row.querySelector('.ab')); });
   $('recap').querySelectorAll('.claim').forEach(b => b.onclick = () => { if (b.classList.contains('on')) return; const raw = b.dataset.raw, pid = b.dataset.p; addClaim(pid, raw); run.claims = run.claims || []; if (!run.claims.some(c => c.p === pid && c.raw === raw)) run.claims.push({ p: pid, raw }); b.classList.add('on'); b.textContent = 'Flagged ✓'; Store.patch(run); toast('Thanks — flagged for review'); });
   $('foot').textContent = all ? (all.shared ? 'Scores are shared with everyone who plays this page.' : API ? 'Scores are saved on this device only — the score server could not be reached.' : 'Scores are saved on this device only — shared scoring needs a signed-in view of the published game.') : '';
   window.__resultsReady = !!all;
