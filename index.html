@@ -47,6 +47,8 @@ button{font-family:inherit;cursor:pointer}
 .lrow b{font:800 15px "Shippori Mincho B1",serif;text-align:center}
 .lrow .nm{color:#d8d6cf}.lrow .nm small{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}
 .lrow .pt{font:700 11px Inter;letter-spacing:.06em}
+.lrow .pt{text-align:right}.lrow .pt .back{display:block;font-weight:500;font-size:10px;color:#ff8a7a;letter-spacing:.04em;margin-top:1px}
+.movesLink{display:block;margin-top:12px;font:700 11px Inter;letter-spacing:.12em;text-transform:uppercase;color:#cfcdc6;text-decoration:none}.movesLink:hover{color:#fff}
 .ranks{display:flex;gap:8px;flex-wrap:wrap}
 .rk{flex:1;min-width:110px;border-radius:10px;padding:10px 12px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
 .rk b{display:block;font:800 12px Inter;letter-spacing:.18em;text-transform:uppercase}
@@ -237,7 +239,7 @@ button{font-family:inherit;cursor:pointer}
     </div>
     <div class="grid3">
       <div class="card"><h3>How it works</h3><p>Each round gives you one prompt and <b>30 seconds</b>. Type any valid answer. Three answers we don't recognise, or the clock running out, and the rival counterattacks for <b>20 HP</b>. Prompts get harder every round.</p></div>
-      <div class="card"><h3>Answer rarity → attack</h3><div class="ladder" id="ladder"></div></div>
+      <div class="card"><h3>Answer rarity → attack</h3><div class="ladder" id="ladder"></div><a class="movesLink" href="moves.html" target="_blank" rel="noopener">All moves &amp; interactions ↗</a></div>
       <div class="card"><h3>Your rank</h3><p style="margin-bottom:12px">Points = damage you deal. Your total decides your rank and where you land among everyone who's played.</p><div class="ranks" id="rankList"></div></div>
     </div>
   </section>
@@ -506,7 +508,7 @@ $('skipBtn').onclick = () => { if (activeCut) post(activeCut, { ff: 'stop' }); }
 /* ================= HOME ================= */
 $('dayLabel').textContent = `Daily #${DAYNO} · ${today.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 $('playDaily').textContent = localStorage.getItem('ff_daily_' + DAY) ? `Replay daily #${DAYNO}` : `Play daily #${DAYNO}`;
-$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O. · +100' : '+' + T.pts}${T.taken ? ` <span style="color:var(--muted);font-weight:500">−${T.taken} HP${T.counter ? ' counter' : ''}</span>` : ''}</span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>Enemy counter</small></span><span class="pt" style="color:var(--X)">+0 <span style="color:var(--muted);font-weight:500">−20 HP</span></span></div>`;
+$('ladder').innerHTML = ORDER.map(k => { const T = TIERS[k], ab = Object.values(T.abil).join(' / '); return `<div class="lrow"><b class="${MYT(k)}" style="color:${T.col}">${k}</b><span class="nm"><span class="${MYT(k)}">${T.name}</span><small>${({ S: 'under 0.1% of players', A: 'under 1%', B: 'under 4%', C: 'under 10%', D: 'under 25%', E: '25% or more' })[k]} · ${ab}</small></span><span class="pt${MYT(k)}" style="color:${T.col}">${k === 'S' ? 'K.O.' : T.pts + ' dmg'}<span class="back">${T.taken ? `counter −${T.taken} HP` : 'no hit back'}</span></span></div>`; }).join('') + `<div class="lrow"><b style="color:var(--X)">✕</b><span class="nm">Miss<small>3 wrong guesses or time out · Enemy Counter</small></span><span class="pt" style="color:var(--X)">0 dmg<span class="back">rival hits −${CFG.missDmg} HP</span></span></div>`;
 $('rankList').innerHTML = RANKS.map((r, i) => `<div class="rk"><b style="background:${r.t};-webkit-background-clip:text;background-clip:text;color:transparent">${r.name}</b><span>${i < RANKS.length - 1 ? `${r.min}–${RANKS[i + 1].min - 1}` : `${r.min}+`} pts</span></div>`).join('');
 const show = id => { for (const s of ['home', 'play', 'results']) $(s).classList.toggle('on', s === id); placeHero(); scrollTo({ top: 0, behavior: 'smooth' }); };
 $('howBtn').onclick = () => $('howModal').classList.add('on'); $('howClose').onclick = () => $('howModal').classList.remove('on');
