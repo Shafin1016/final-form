@@ -57,7 +57,7 @@ const T = [
   { k: 'A', name: 'Legendary', col: '#ffc94d', share: 'the next-rarest ~8%', pts: 75, deal: 75, taken: 0, moves: [['a', 'Rock']] },
   { k: 'B', name: 'Epic', col: '#b98cff', share: 'the rare ~14%', pts: 50, deal: 50, taken: 0, moves: [['b', 'Malicious Fate']] },
   { k: 'C', name: 'Rare', col: '#6aa8ff', share: 'the middle ~20%', pts: 35, deal: 35, taken: 0, moves: [['c', 'Phantom Rush']] },
-  { k: 'D', name: 'Uncommon', col: '#7fd18b', share: 'the popular ~25%', pts: 25, deal: 25, taken: 5, counter: true, moves: [['d', 'Black Crescent'], ['d2', 'Spiral Orb']] },
+  { k: 'D', name: 'Uncommon', col: '#7fd18b', share: 'the popular ~25%', pts: 25, deal: 25, taken: 10, counter: true, moves: [['d', 'Black Crescent'], ['d2', 'Spiral Orb']] },
   { k: 'E', name: 'Common', col: '#b9bec7', share: 'the most popular ~30%', pts: 20, deal: 20, taken: 15, counter: true, moves: [['e', 'Spark Fist'], ['e2', 'Steam Jet']] },
 ];
 const MISS = { k: '✕', name: 'Miss', col: '#ff7a6a', share: `${CFG.strikes} wrong guesses, or ${CFG.time}s runs out`, pts: 0, deal: 0, taken: CFG.missDmg, moves: [['x', 'Enemy Counter']] };
@@ -72,7 +72,7 @@ document.getElementById('rules').innerHTML = [
   `<b>Rarer answers hit harder.</b> Each prompt's answers are ranked from most to least popular (by how many players gave them) and split into tiers: about 30% Common, 25% Uncommon, 20% Rare, 14% Epic, 8% Legendary and just 1–2 Mythic. Ranks shift as more people play.`,
   `<b>Mythic</b> deals whatever HP the rival has left: an instant K.O., worth +100 points.`,
   `<b>Legendary, Epic and Rare</b> hits are clean: the rival can't hit back.`,
-  `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks and taunts you: <b>15 HP</b> after a Common hit, <b>5 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,
+  `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks and taunts you: <b>15 HP</b> after a Common hit, <b>10 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,
   `<b>Missing</b> (${CFG.strikes} wrong guesses, or the ${CFG.time}-second timer running out) lets the rival strike for <b>${CFG.missDmg} HP</b>, and you deal nothing.`,
   `<b>K.O.:</b> a rival at 0 HP plays its death scene, then the next one leaps in at full HP: the Oni Brute, the Iron Warden, then The Hollow, and round again.`,
   `<b>Your score is the total points</b> from your seven answers. It sets your rank. If your HP hits 0, the run ends early.`,

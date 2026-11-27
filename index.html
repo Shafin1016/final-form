@@ -298,7 +298,7 @@ button{font-family:inherit;cursor:pointer}
 
 <div class="modal" id="howModal"><div class="card"><h3>How to play</h3>
 <p>You get seven prompts — anime and video games — starting easy and getting harder each round. Type any valid answer within 30 seconds.</p>
-<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Common and Uncommon hits get countered: the rival strikes back for 15 HP after a Common hit and 5 HP after an Uncommon one.</p>
+<p style="margin-top:10px">Every right answer becomes an attack. Common answers land small hits; rare ones unleash bigger forms. A <b style="color:var(--S)">Mythic</b> answer is an instant K.O. Common and Uncommon hits get countered: the rival strikes back for 15 HP after a Common hit and 10 HP after an Uncommon one.</p>
 <p style="margin-top:10px">Three answers we don't recognise, or the timer running out, and the rival counterattacks. Damage carries over between rounds — knock a rival out and the next one steps in: the Oni Brute, then the Iron Warden, then the Hollow, and round again. Lose all your HP and the run ends.</p>
 <p style="margin-top:10px">Your score is the total damage you deal. It sets your rank: Bronze, Silver, Gold or Platinum.</p>
 <div style="margin-top:16px;text-align:right"><button class="btn main" id="howClose">Got it</button></div></div></div>
@@ -332,7 +332,7 @@ const TIERS = {
   A: { name: 'Legendary', col: '#ffc94d', pts: 75, taken: 0, cuts: ['a'], abil: { a: 'Rock' } },
   B: { name: 'Epic', col: '#b98cff', pts: 50, taken: 0, cuts: ['b'], abil: { b: 'Malicious Fate' } },
   C: { name: 'Rare', col: '#6aa8ff', pts: 35, taken: 0, cuts: ['c'], abil: { c: 'Phantom Rush' } },
-  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 5, counter: true, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
+  D: { name: 'Uncommon', col: '#7fd18b', pts: 25, taken: 10, counter: true, cuts: ['d', 'd2'], abil: { d: 'Black Crescent', d2: 'Spiral Orb' } },
   E: { name: 'Common', col: '#b9bec7', pts: 20, taken: 15, counter: true, cuts: ['e', 'e2'], abil: { e: 'Spark Fist', e2: 'Steam Jet' } },
 };
 const ORDER = ['S', 'A', 'B', 'C', 'D', 'E'];
