@@ -53,9 +53,9 @@ ul.rules{margin:0;padding-left:18px;line-height:1.8;font-size:14px;color:#d8d6cf
 const V = '202611262020';
 const CFG = { hp: 100, rivalHP: 200, missDmg: 20, strikes: 3, time: 30 };
 const T = [
-  { k: 'S', name: 'Mythic', col: '#dfe8ff', share: 'the rarest 1–3 answers, only in prompts with 30+ answers', pts: 100, deal: 'K.O.', dealNote: 'all remaining HP', taken: 0, moves: [['s', 'Silver Instinct']] },
-  { k: 'A', name: 'Legendary', col: '#ffc94d', share: 'at least 3 for every Mythic', pts: 75, deal: 75, taken: 0, moves: [['a', 'Rock']] },
-  { k: 'B', name: 'Epic', col: '#b98cff', share: 'at least 2 for every Legendary', pts: 50, deal: 50, taken: 0, moves: [['b', 'Malicious Fate']] },
+  { k: 'S', name: 'Mythic', col: '#dfe8ff', share: 'the rarest 1–2 answers of a prompt', pts: 100, deal: 'K.O.', dealNote: 'all remaining HP', taken: 0, moves: [['s', 'Silver Instinct']] },
+  { k: 'A', name: 'Legendary', col: '#ffc94d', share: 'the next-rarest ~8%', pts: 75, deal: 75, taken: 0, moves: [['a', 'Rock']] },
+  { k: 'B', name: 'Epic', col: '#b98cff', share: 'the rare ~14%', pts: 50, deal: 50, taken: 0, moves: [['b', 'Malicious Fate']] },
   { k: 'C', name: 'Rare', col: '#6aa8ff', share: 'the middle ~20%', pts: 35, deal: 35, taken: 0, moves: [['c', 'Phantom Rush']] },
   { k: 'D', name: 'Uncommon', col: '#7fd18b', share: 'the popular ~25%', pts: 25, deal: 25, taken: 5, counter: true, moves: [['d', 'Black Crescent'], ['d2', 'Spiral Orb']] },
   { k: 'E', name: 'Common', col: '#b9bec7', share: 'the most popular ~30%', pts: 20, deal: 20, taken: 15, counter: true, moves: [['e', 'Spark Fist'], ['e2', 'Steam Jet']] },
@@ -69,7 +69,7 @@ document.getElementById('table').innerHTML = [...T, MISS].map(t => `<tr><td clas
 
 document.getElementById('rules').innerHTML = [
   `You start with <b>${CFG.hp} HP</b>. Each rival has <b>${CFG.rivalHP} HP</b>. Your HP carries over between rounds; it never refills.`,
-  `<b>Rarer answers hit harder.</b> Each prompt's answers are ranked from most to least popular (by how many players gave them) and split into tiers: Common is always the biggest group, then Uncommon and Rare. There are always at least 2 Epic answers for every Legendary and at least 3 Legendary for every Mythic, so Mythic (1–3 answers) only exists in prompts with 30 or more answers. Ranks shift as more people play.`,
+  `<b>Rarer answers hit harder.</b> Each prompt's answers are ranked from most to least popular (by how many players gave them) and split into tiers: about 30% Common, 25% Uncommon, 20% Rare, 14% Epic, 8% Legendary and just 1–2 Mythic. Ranks shift as more people play.`,
   `<b>Mythic</b> deals whatever HP the rival has left: an instant K.O., worth +100 points.`,
   `<b>Legendary, Epic and Rare</b> hits are clean: the rival can't hit back.`,
   `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks and taunts you: <b>15 HP</b> after a Common hit, <b>5 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,

@@ -103,30 +103,15 @@
   // the list, so every prompt is a pyramid (lots of Common/Uncommon, a few Legendary, 1-3 Mythic).
   // list: [{ key, sh: share of players 0..1 (null before a prompt has enough plays), hand: hand-written tier }]
   const QUOTA = [['E', 0.30], ['D', 0.25], ['C', 0.20], ['B', 0.14]];
-  function mythicSlots(n) { return n < 4 ? 0 : n < 30 ? 1 : n < 60 ? 2 : 3; }
+  function mythicSlots(n) { return n < 4 ? 0 : n < 60 ? 1 : 2; }
   function rankTiers(list) {
     const ord = 'EDCBAS', n = list.length, map = new Map();
     const sorted = list.slice().sort((x, y) => ((y.sh == null ? -1 : y.sh) - (x.sh == null ? -1 : x.sh)) || ord.indexOf(x.hand) - ord.indexOf(y.hand) || (x.key < y.key ? -1 : 1));
-    // plan the counts top-down so the pyramid rules hold: Legendary >= 3 x Mythic, Epic >= 2 x Legendary.
-    // A Mythic is only offered when its Legendary/Epic entourage fits in the rarest ~45% of the list.
-    let nS = mythicSlots(n), nA, nB;
-    for (;; nS--) { nA = n < 5 ? 0 : Math.max(1, Math.round(n * 0.08), 3 * nS); nB = Math.max(n < 5 ? 0 : Math.round(n * 0.14), 2 * nA); if (nS <= 0 || (nA >= 3 * nS && nS + nA + nB <= n * 0.45)) break; }
-    nS = Math.max(0, nS); while (nA && nS + nA + nB > n - Math.min(n, 3)) { nA--; nB = Math.max(0, nB - 2); }   // tiny prompts: keep 3 for C/D/E
-    const m = n - nS - nA - nB, W = QUOTA.slice(0, 3).reduce((a, q) => a + q[1], 0); let i = 0;
-    QUOTA.slice(0, 3).forEach(([t, q], j) => { const take = j === 2 ? m - i : Math.min(m - i, Math.max(t === 'E' && m ? 1 : 0, Math.round(m * q / W))); for (let k = 0; k < take; k++) sorted[i + k].tier = t; i += Math.max(0, take); });
-    for (let k = 0; k < nB; k++) sorted[i++].tier = 'B';
+    const nS = mythicSlots(n), nA = n < 8 ? 0 : Math.max(1, Math.round(n * 0.08)), m = n - nS - nA, W = QUOTA.reduce((a, q) => a + q[1], 0); let i = 0;
+    QUOTA.forEach(([t, q], j) => { const take = j === QUOTA.length - 1 ? m - i : Math.min(m - i, Math.max(t === 'E' && m ? 1 : 0, Math.round(m * q / W))); for (let k = 0; k < take; k++) sorted[i + k].tier = t; i += Math.max(0, take); });
     for (; i < n; i++) sorted[i].tier = i >= n - nS ? 'S' : 'A';
     // never call something rare when a real share of players gives it
-    for (const r of sorted) { if (r.sh != null && r.tier === 'S' && r.sh >= 0.005) r.tier = 'A'; if (r.sh != null && r.tier === 'A' && r.sh >= 0.02) r.tier = 'B'; }
-    // the pyramid rules: at least 3 Legendary for every Mythic (otherwise the Mythic becomes Legendary),
-    // and at least 2 Epic for every Legendary (the rarest Rare answers move up; with none left, a Legendary moves down)
-    const cnt = t => sorted.filter(r => r.tier === t).length, last = t => { for (let j = sorted.length - 1; j >= 0; j--) if (sorted[j].tier === t) return sorted[j]; return null; }, first = t => sorted.find(r => r.tier === t) || null;
-    for (let guard = 0; guard < 4 * n + 4; guard++) {
-      if (cnt('S') && cnt('A') < 3 * cnt('S')) { first('S').tier = 'A'; continue; }
-      if (cnt('A') && cnt('B') < 2 * cnt('A')) { const c = last('C'); if (c) c.tier = 'B'; else first('A').tier = 'B'; continue; }
-      break;
-    }
-    for (const r of sorted) map.set(r.key, r.tier);
+    for (const r of sorted) { if (r.sh != null && r.tier === 'S' && r.sh >= 0.005) r.tier = 'A'; if (r.sh != null && r.tier === 'A' && r.sh >= 0.02) r.tier = 'B'; map.set(r.key, r.tier); }
     return { map, sorted };
   }
   function capTier(ans, tier) { if (!ans || !ans.ai) return tier; return TIER_ORDER.indexOf(tier) < TIER_ORDER.indexOf(UNREVIEWED_CAP) ? UNREVIEWED_CAP : tier; }
