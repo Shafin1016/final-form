@@ -990,11 +990,16 @@ function endCard(s, L, rarity, name, dmg, col) {
   const gl = ctx.createRadialGradient(0, 10, 0, 0, 10, 230); gl.addColorStop(0, rc(mythic ? .32 : .2)); gl.addColorStop(1, rc(0)); ctx.fillStyle = gl; ctx.fillRect(-260, -230, 520, 480);
   const sc = lerp(1.1, 1, E.o(clamp(s / .6))); ctx.scale(sc, sc); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = '700 136px "Shippori Mincho B1", Georgia, serif'; let lf = '#f2f1ec';
-  if (mythic) { const sx = lerp(-260, 260, (s * .55) % 1.6 / 1.6); const sh = ctx.createLinearGradient(sx - 90, -70, sx + 90, 70); sh.addColorStop(0, '#dfe5f2'); sh.addColorStop(.5, '#ffffff'); sh.addColorStop(1, '#dfe5f2'); lf = sh; }
+  const RB = (x0, x1, off) => { const gr = ctx.createLinearGradient(x0, 0, x1, 0); for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, `hsl(${(i * 60 + s * 140 + off) % 360},95%,76%)`); return gr; };
+  if (mythic) { lf = RB(-80, 80, 0); ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + s * .9; const hg = ctx.createRadialGradient(Math.cos(a) * 40, Math.sin(a) * 30 + 6, 0, Math.cos(a) * 40, Math.sin(a) * 30 + 6, 150); hg.addColorStop(0, `hsla(${(i * 60 + s * 140) % 360},95%,65%,.16)`); hg.addColorStop(1, 'hsla(0,0%,0%,0)'); ctx.fillStyle = hg; ctx.fillRect(-260, -230, 520, 480); } ctx.restore();
+    ctx.save(); ctx.shadowColor = `hsl(${(s * 140) % 360},95%,70%)`; ctx.shadowBlur = 34; ctx.fillStyle = lf; ctx.fillText(L, 0, 0); ctx.restore();
+    // sparkles twinkling around the letter
+    ctx.save(); for (let i = 0; i < 14; i++) { const a = i * 2.39 + s * .25, rr = 95 + (i % 3) * 28, tw = Math.max(0, Math.sin(s * 5 + i * 1.7)), x = Math.cos(a) * rr * 1.25, y = Math.sin(a) * rr * .75 + 6, z2 = 2 + 5 * tw;
+      ctx.globalAlpha = a > 0 ? tw : 0; ctx.fillStyle = `hsl(${(i * 47 + s * 140) % 360},95%,82%)`; ctx.beginPath(); ctx.moveTo(x, y - z2 * 2); ctx.quadraticCurveTo(x, y, x + z2 * 2, y); ctx.quadraticCurveTo(x, y, x, y + z2 * 2); ctx.quadraticCurveTo(x, y, x - z2 * 2, y); ctx.quadraticCurveTo(x, y, x, y - z2 * 2); ctx.fill(); } ctx.restore(); ctx.globalAlpha = a; }
   ctx.fillStyle = lf; ctx.fillText(L, 0, 0);
-  const lw = 130 * E.o(clamp((s - .15) / .5)); ctx.strokeStyle = rc(.65); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-85 - lw, 4); ctx.lineTo(-85, 4); ctx.moveTo(85, 4); ctx.lineTo(85 + lw, 4); ctx.stroke();
-  ctx.font = '700 12px Inter, sans-serif'; let rf = col; if (mythic) { const sx = lerp(-160, 160, (s * .7) % 1.4 / 1.4), gg = ctx.createLinearGradient(sx - 40, 0, sx + 40, 0); gg.addColorStop(0, col); gg.addColorStop(.5, '#ffffff'); gg.addColorStop(1, col); rf = gg; } ctx.fillStyle = rf; ctx.fillText(sp(rarity), 0, 72);
-  ctx.font = '500 15px Inter, sans-serif'; ctx.fillStyle = '#e9e6df'; ctx.fillText(sp(name), 0, 112);
+  const lw = 130 * E.o(clamp((s - .15) / .5)); ctx.strokeStyle = mythic ? RB(-215, 215, 90) : rc(.65); ctx.lineWidth = mythic ? 1.6 : 1; ctx.beginPath(); ctx.moveTo(-85 - lw, 4); ctx.lineTo(-85, 4); ctx.moveTo(85, 4); ctx.lineTo(85 + lw, 4); ctx.stroke();
+  ctx.font = '700 12px Inter, sans-serif'; let rf = col; if (mythic) rf = RB(-60, 60, 180); ctx.fillStyle = rf; ctx.fillText(sp(rarity), 0, 72);
+  ctx.font = '500 15px Inter, sans-serif'; ctx.fillStyle = mythic ? RB(-120, 120, 240) : '#e9e6df'; ctx.fillText(sp(name), 0, 112);
   ctx.font = '500 11px Inter, sans-serif'; ctx.fillStyle = rc(.92); ctx.fillText(dmg, 0, 136); ctx.restore(); }
 function lowerThird(a, title, rank, accent, titleCol, rankCol, lbPx) {
   ctx.save(); ctx.globalAlpha = a; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
@@ -1030,13 +1035,18 @@ const Q = {
   crouch: 0, launch: .14, gone: .5, toSpace: .62,
   arrive: 1.0, raise: 1.05, grown: 3.0, windup: 3.05, throwT: 3.38, travel: 3.48, contact: 4.5,
   wide: 5.75, burst: 8.0, white: 8.15, black: 8.75, debris: 8.95, wipe: 10.65, land: 10.95,
-  say: 11.85, sayEnd: 13.55, leap: 12.45, rLand: 13.15, glyph: 13.95,
+  say: 11.75, sayEnd: 13.05, leap: 13.2, rLand: 13.8, rSay: 14.05, rSayEnd: 16.0, glyph: 16.3,
 };
 T.glyph = TS + Q.glyph; T.end = TS + Q.glyph + 1.85;
 // drop the old beam / shatter / walk-home beats; the sequence below replaces them
 for (const L of [EVENTS, SND]) for (let i = L.length - 1; i >= 0; i--) if (L[i][0] >= TS - 1e-6) L.splice(i, 1);
 const _speedAt = speedAt; speedAt = tt => tt < TS ? _speedAt(tt) : (tt > TS + Q.contact - .02 && tt < TS + Q.contact + .55) ? .42 : (tt > TS + Q.burst - .25 && tt < TS + Q.burst + .05) ? .6 : 1;
 const NEXT = { oni: 'warden', warden: 'hollow', hollow: 'oni' };
+// the rivals' entrance lines (same as the game)
+const FOE_LINES_SI = {
+  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.', "Oh… it's you.", 'You lack hatred.', 'War. War never changes.', 'Kept you waiting, huh?'],
+  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form.", "Is this all you've got?", "Hey, you. You're finally awake.", 'Know your place, fool.'],
+  hollow: ['YLLACOFM'] };
 const nextKind = () => new URLSearchParams(location.search).get('next') || NEXT[RIVAL_KIND] || 'warden';
 
 // ---------- caches ----------
@@ -1208,6 +1218,14 @@ function shotReturn(sdt, u) { const g = ctx; g.save(); g.setTransform(DPR, 0, 0,
     g.fillStyle = '#f4f2ec'; g.strokeStyle = '#0b0b0e'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(tx + 14, ty + 40); g.lineTo(hJ.head[0] + 12, hJ.head[1] - 18); g.lineTo(tx + 34, ty + 40); g.closePath(); g.fill(); g.stroke();
     g.beginPath(); g.roundRect(tx, ty, w, 42, 14); g.fill(); g.stroke(); g.fillStyle = '#f4f2ec'; g.fillRect(tx + 15, ty + 36, 18, 6);
     g.fillStyle = '#0b0b0e'; g.textBaseline = 'middle'; g.fillText(txt, tx + 15, ty + 21); g.restore(); }
+  if (rj && u > Q.rSay && u < Q.rSayEnd) { const L = FOE_LINES_SI[RIVAL_KIND] || ['...']; if (st.rLine == null) st.rLine = L[Math.floor(Math.random() * L.length)];
+    const txt = new URLSearchParams(location.search).get('line') || window.__rivalLine || st.rLine, pop = E.o(clamp((u - Q.rSay) / .14)), out = 1 - clamp((u - (Q.rSayEnd - .2)) / .2);
+    g.save(); g.globalAlpha = out; g.font = '700 18px Inter, sans-serif'; const w = Math.min(420, g.measureText(txt).width + 30), hx2 = rj.head[0], hy2 = rj.head[1], tx = hx2 - w - 30, ty = hy2 - 92;
+    g.translate(tx + w, ty + 42); g.scale(pop, pop); g.translate(-(tx + w), -(ty + 42));
+    g.fillStyle = '#1a1a1e'; g.strokeStyle = '#f4f2ec'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(tx + w - 34, ty + 40); g.lineTo(hx2 - 14, hy2 - 22); g.lineTo(tx + w - 14, ty + 40); g.closePath(); g.fill(); g.stroke();
+    g.beginPath(); g.roundRect(tx, ty, w, 42, 14); g.fill(); g.stroke(); g.fillStyle = '#1a1a1e'; g.fillRect(tx + w - 35, ty + 36, 22, 6);
+    g.font = '600 10px Inter, sans-serif'; g.fillStyle = '#ff8a7a'; g.textBaseline = 'middle'; g.fillText(({ oni: 'ONI BRUTE', warden: 'IRON WARDEN', hollow: 'THE HOLLOW' })[RIVAL_KIND] || '', tx + 4, ty - 10);
+    g.font = '700 18px Inter, sans-serif'; g.fillStyle = '#f4f2ec'; g.fillText(txt, tx + 15, ty + 21); g.restore(); }
   g.drawImage(vig, 0, 0, W, H);
   RIVAL_KIND = kind0; g.restore();
   flashOver(g, u < Q.land ? 1 - prog(u, Q.wipe, Q.wipe + .12) : .45 * (1 - prog(u, Q.land + .07, Q.land + .3)));
