@@ -41,7 +41,7 @@ async def main():
         if tier in 'DE':
             await pg.wait_for_timeout(1200); await pg.screenshot(path='/tmp/counter.png', clip={'x': 60, 'y': 80, 'width': 980, 'height': 560})
             ok('counterattack banner shown', await pg.text_content('#bannerS') and 'hits back' in await pg.text_content('#bannerS'), await pg.text_content('#bannerS'))
-            ok('rival taunts', len((await pg.text_content('#sayTxt')) or '') > 3, await pg.text_content('#sayTxt'))
+            ok('no taunt while voice lines are off (voice-lines.md)', not (await pg.is_visible('#say.on')), await pg.text_content('#sayTxt'))
             await pg.wait_for_selector('#nextBtn', state='visible', timeout=20000)
             hp = await pg.evaluate("__ff.state().hp"); ok('HP went down by the counter', hp == 100 - {'E': 15, 'D': 10}[tier], f'{tier}: 100 -> {hp}')
         else: print('  (skipped visual check: answer landed as', tier, ')')

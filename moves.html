@@ -72,11 +72,10 @@ document.getElementById('rules').innerHTML = [
   `<b>Rarer answers hit harder.</b> Each prompt's answers are ranked from most to least popular (by how many players gave them) and split into tiers: about 30% Common, 25% Uncommon, 20% Rare, 14% Epic, 8% Legendary and just 1–2 Mythic. Ranks shift as more people play.`,
   `<b>Mythic</b> deals whatever HP the rival has left: an instant K.O., worth +100 points.`,
   `<b>Legendary, Epic and Rare</b> hits are clean: the rival can't hit back.`,
-  `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks and taunts you: <b>15 HP</b> after a Common hit, <b>10 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,
+  `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks: <b>15 HP</b> after a Common hit, <b>10 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,
   `<b>Missing</b> (${CFG.strikes} wrong guesses, or the ${CFG.time}-second timer running out) lets the rival strike for <b>${CFG.missDmg} HP</b>, and you deal nothing.`,
   `<b>K.O.:</b> a rival at 0 HP plays its death scene, then the next one leaps in at full HP: the Oni Brute, the Iron Warden, then The Hollow, and round again.`,
   `<b>Your score is the total points</b> from your seven answers. It sets your rank. If your HP hits 0, the run ends early.`,
-  `What the rivals say when they counter: ${Object.entries(LINES).map(([n, l]) => `${n}: ${l.map(x => `<i>“${x}”</i>`).join(', ')}`).join(' · ')}.`,
 ].map(x => `<li>${x}</li>`).join('');
 
 const grid = document.getElementById('moves');

@@ -532,7 +532,7 @@ function startGame(mode) {
   loadExtras(G.prompts); if (AI_DOWN || aiFails) aiHealth();
   setHP(true); $('scoreTxt').textContent = '0'; $('rvName').textContent = foe(0).name; showBackdrop();
   show('play'); placeHero(); drawTrack(); $('askView').style.display = 'none'; $('reveal').classList.remove('on');
-  (async () => { if (!FAST) { await wait(250); await playCut('i', null); await rivalSay(foe(0)); } if (G.mode === mode && G.round === 0 && !G.over) nextRound(true); })();
+  (async () => { if (!FAST) { await wait(250); await playCut('i', null); await rivalSay(foe(0)); showBackdrop(); } if (G.mode === mode && G.round === 0 && !G.over) nextRound(true); })();
 }
 function setHP(instant) { const h = clamp(G.hp / CFG.hp), v = clamp(G.rv / CFG.rivalHP);
   for (const [fill, lag, k] of [['hpFill', 'hpLag', h], ['rvFill', 'rvLag', v]]) { const a = $(fill), b = $(lag); if (instant) { a.style.transition = b.style.transition = 'none'; } a.style.transform = `scaleX(${k})`; b.style.transform = `scaleX(${k})`; if (instant) { a.offsetWidth; a.style.transition = b.style.transition = ''; } }
@@ -638,7 +638,7 @@ async function resolve(ans, why, raw) {
     G.emptyStage = tier === 'S'; if (tier !== 'S') await playCut('k', null, dead.id);
     G.emptyStage = true; G.rvN++; showBackdrop();
     await banner('K.O.', `${dead.name} is down · ${foe(G.rvN).name} steps in`); G.rv = CFG.rivalHP; $('rvName').textContent = foe(G.rvN).name; setHP();
-    G.emptyStage = false; if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } else showBackdrop(); }
+    G.emptyStage = false; if (!FAST) { await playCut('i', null); await rivalSay(foe(G.rvN)); } showBackdrop(); }
   if (G.hp <= 0) { await banner('DEFEATED', 'Your HP hit zero'); }
   G.round++;
   if (G.round >= CFG.rounds || G.hp <= 0) { $('nextBtn').textContent = 'See results ▸'; } else $('nextBtn').textContent = 'Next prompt ▸';
@@ -647,10 +647,8 @@ async function resolve(ans, why, raw) {
 }
 $('nextBtn').onclick = () => { $('nextBtn').style.display = 'none'; nextRound(); };
 // rival lines: shown in a speech bubble when that rival steps in
-const FOE_LINES = {
-  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.', 'Oh… it\'s you.', 'You lack hatred.', 'War. War never changes.', 'Kept you waiting, huh?'],
-  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form.", 'Is this all you\'ve got?', 'Hey, you. You\'re finally awake.', 'Know your place, fool.'],
-  hollow: ['YLLACOFM'] };
+// lines are switched off for now; the full set is kept in voice-lines.md (copy them back in here to restore)
+const FOE_LINES = { oni: [], warden: [], hollow: [] };
 let lastLine = {};
 function pickLine(id) { const L = FOE_LINES[id]; if (!L || !L.length) return null; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastLine[id]) i = (i + 1) % L.length; lastLine[id] = i; return L[i]; }
 let sayTimer = 0, sayTok = 0;
@@ -659,11 +657,7 @@ function rivalSay(f, onlyIf = true, text = null) { const line = text || pickLine
 function banner(b, s) { return new Promise(res => { if (FAST) return res(); $('bannerB').textContent = b; $('bannerS').textContent = s; $('banner').classList.add('on'); setTimeout(() => { $('banner').classList.remove('on'); setTimeout(res, 250); }, 1700); }); }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // rival answers a weak hit: red flash + shake, −20 over the hero, banner, and a taunt
-const COUNTER_LINES = {
-  oni: ["You'll have to do better than that.", 'That tickled.', 'Is that all you brought?'],
-  warden: ["You'll have to do better than that.", 'Predictable.', 'Common steel bends. Mine does not.'],
-  hollow: ["You'll have to do better than that.", 'Weak.', 'YLLACOFM'],
-};
+const COUNTER_LINES = { oni: [], warden: [], hollow: [] };   // switched off for now, see voice-lines.md
 let lastCounter = {};
 async function counterAttack(n) { const f = foe(G.rvN), L = COUNTER_LINES[f.id] || COUNTER_LINES.oni; let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastCounter[f.id]) i = (i + 1) % L.length; lastCounter[f.id] = i;
   G.hp -= n; if (FAST) { setHP(); return; }

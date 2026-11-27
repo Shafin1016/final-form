@@ -1043,10 +1043,7 @@ for (const L of [EVENTS, SND]) for (let i = L.length - 1; i >= 0; i--) if (L[i][
 const _speedAt = speedAt; speedAt = tt => tt < TS ? _speedAt(tt) : (tt > TS + Q.contact - .02 && tt < TS + Q.contact + .55) ? .42 : (tt > TS + Q.burst - .25 && tt < TS + Q.burst + .05) ? .6 : 1;
 const NEXT = { oni: 'warden', warden: 'hollow', hollow: 'oni' };
 // the rivals' entrance lines (same as the game)
-const FOE_LINES_SI = {
-  oni: ["Oh? You're approaching me?", "Don't use such strong words. It makes you look weak.", 'You weak, pathetic fool!', 'Feel pain.', "Oh… it's you.", 'You lack hatred.', 'War. War never changes.', 'Kept you waiting, huh?'],
-  warden: ['Wake up to reality!', "Stand proud. You're strong.", "This isn't even my final form.", "Is this all you've got?", "Hey, you. You're finally awake.", 'Know your place, fool.'],
-  hollow: ['YLLACOFM'] };
+const FOE_LINES_SI = { oni: [], warden: [], hollow: [] };   // lines switched off for now, see voice-lines.md
 const nextKind = () => new URLSearchParams(location.search).get('next') || NEXT[RIVAL_KIND] || 'warden';
 
 // ---------- caches ----------
@@ -1218,7 +1215,7 @@ function shotReturn(sdt, u) { const g = ctx; g.save(); g.setTransform(DPR, 0, 0,
     g.fillStyle = '#f4f2ec'; g.strokeStyle = '#0b0b0e'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(tx + 14, ty + 40); g.lineTo(hJ.head[0] + 12, hJ.head[1] - 18); g.lineTo(tx + 34, ty + 40); g.closePath(); g.fill(); g.stroke();
     g.beginPath(); g.roundRect(tx, ty, w, 42, 14); g.fill(); g.stroke(); g.fillStyle = '#f4f2ec'; g.fillRect(tx + 15, ty + 36, 18, 6);
     g.fillStyle = '#0b0b0e'; g.textBaseline = 'middle'; g.fillText(txt, tx + 15, ty + 21); g.restore(); }
-  if (rj && u > Q.rSay && u < Q.rSayEnd) { const L = FOE_LINES_SI[RIVAL_KIND] || ['...']; if (st.rLine == null) st.rLine = L[Math.floor(Math.random() * L.length)];
+  if (rj && u > Q.rSay && u < Q.rSayEnd && ((FOE_LINES_SI[RIVAL_KIND] || []).length || new URLSearchParams(location.search).get('line') || window.__rivalLine)) { const L = FOE_LINES_SI[RIVAL_KIND] || []; if (st.rLine == null) st.rLine = L.length ? L[Math.floor(Math.random() * L.length)] : '';
     const txt = new URLSearchParams(location.search).get('line') || window.__rivalLine || st.rLine, pop = E.o(clamp((u - Q.rSay) / .14)), out = 1 - clamp((u - (Q.rSayEnd - .2)) / .2);
     g.save(); g.globalAlpha = out; g.font = '700 18px Inter, sans-serif'; const w = Math.min(420, g.measureText(txt).width + 30), hx2 = rj.head[0], hy2 = rj.head[1], tx = hx2 - w - 30, ty = hy2 - 92;
     g.translate(tx + w, ty + 42); g.scale(pop, pop); g.translate(-(tx + w), -(ty + 42));
