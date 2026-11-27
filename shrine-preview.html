@@ -437,7 +437,7 @@ function stepRibbon(R, ax, ay, f, dt, ph) {
   R.p[0] = [ax, ay]; R.o[0] = [ax, ay];
   const d2 = dt * dt * 3600;
   for (let i = 1; i < R.n; i++) { const p = R.p[i], o = R.o[i]; const vx = (p[0] - o[0]) * .93, vy = (p[1] - o[1]) * .93; R.o[i] = [p[0], p[1]];
-    const u = i / R.n; p[0] += vx + (-wind * f) * d2 * .02 * (.6 + u); p[1] += vy + (.9 * grav + Math.sin(now * 6.2 + i * .75 + ph) * 3.2 * u * scarfFlut * (grav > 1 ? .25 : 1)) * d2 * .02; }
+    const u = i / R.n; p[0] += vx + (-wind * f) * d2 * .02 * (.6 + u); p[1] += vy + (.9 * grav + Math.sin(scarfClock * 6.2 + i * .75 + ph) * 3.2 * u * scarfFlut * (grav > 1 ? .25 : 1)) * d2 * .02; }
   for (let k = 0; k < 7; k++) for (let i = 1; i < R.n; i++) { const a = R.p[i - 1], b = R.p[i], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || .01, df = (d - R.len) / d; if (i > 1) { a[0] += dx * df * .5; a[1] += dy * df * .5; b[0] -= dx * df * .5; b[1] -= dy * df * .5; } else { b[0] -= dx * df; b[1] -= dy * df; } }
   for (let i = 1; i < R.n; i++) { const a = R.p[i - 1], b = R.p[i], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || .01; if (d > R.len * 1.08) { const k = R.len * 1.08 / d, nx = a[0] + dx * k, ny = a[1] + dy * k; R.o[i][0] += nx - b[0]; R.o[i][1] += ny - b[1]; b[0] = nx; b[1] = ny; } }
 }
@@ -696,10 +696,10 @@ const [SCARF, SCARF_D] = SCARFS[new URLSearchParams(location.search).get('scarf'
 
 /* ================= LOOP ================= */
 let t = 0, playing = false, st = {}, fired = [], speedMul = 1;
-function reset() { hush(); sfired = []; dmg = []; marks = []; CUTS.forEach(c => c.done = 0); try { AUD.pause(); } catch (e) { } t = 0; st = {}; fired = []; parts = []; ghosts = []; streaks = []; ripples = []; shards = []; fistHist = []; footHist = []; shake = flash = impact = 0; tails.forEach(r => r.ok = false); scarfAcc = 0; scarfT = now; seed = 7; Object.assign(cam, { x: W / 2, y: H / 2, z: 1, tx: W / 2, ty: H / 2, tz: 1 }); }
+function reset() { hush(); sfired = []; dmg = []; marks = []; CUTS.forEach(c => c.done = 0); try { AUD.pause(); } catch (e) { } t = 0; st = {}; fired = []; parts = []; ghosts = []; streaks = []; ripples = []; shards = []; fistHist = []; footHist = []; shake = flash = impact = 0; tails.forEach(r => r.ok = false); scarfAcc = 0; scarfT = scarfClock; scarfLift = 0; seed = 7; Object.assign(cam, { x: W / 2, y: H / 2, z: 1, tx: W / 2, ty: H / 2, tz: 1 }); }
 function step(dt) {
   const sp = playing ? speedAt(t) * speedMul : speedMul;
-  const sdt = dt * sp;
+  const sdt = dt * sp; scarfClock += dt * speedMul;
   if (playing) { realT += dt * speedMul; t += sdt; EVENTS.forEach((e, i) => { if (!fired[i] && t >= e[0]) { fired[i] = 1; e[1](st); } });  if (t > T.end + 1) playing = false; }
   now += sdt;
   for (const p of parts) { p.life -= sdt; p.vy += p.g * sdt; if (p.drag) { p.vx *= Math.exp(-p.drag * sdt); p.vy *= Math.exp(-p.drag * sdt); } p.x += p.vx * sdt; p.y += p.vy * sdt; } parts = parts.filter(p => p.life > 0);
@@ -919,13 +919,13 @@ function drawSlash(g, x, y, a, len, w, k) { if (k < 0 || k > 1) return; const ux
   g.restore(); }
 function drawCut(g, x, y, a, len, k) { const L = len * E.o(clamp(k * 3)), ux = Math.cos(a), uy = Math.sin(a), off = len * .5 * E.i(clamp((k - .5) * 2)); const x0 = x - ux * L / 2 + ux * off, y0 = y - uy * L / 2 + uy * off, x1 = x + ux * L / 2, y1 = y + uy * L / 2; g.save(); g.lineCap = 'round'; g.globalAlpha = 1 - clamp((k - .6) / .4);
   g.strokeStyle = 'rgba(255,50,35,.6)'; g.lineWidth = 6; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.restore(); }
-let scarfAcc = 0, scarfT = 0, scarfFlut = 1;
+let scarfAcc = 0, scarfT = 0, scarfFlut = 1, scarfClock = 0, scarfLift = 0;
 function render(sdt) {
   const hs = heroAt(t), rs = rivalAt(t);
   const rk = riseK(t), sk = E.o(prog(t, T.rise + .25, T.risen + .2)) * (t > T.collapse ? 1 - E.i(prog(t, T.collapse, T.gone - .05)) : 1); const h0 = solve(hs.p, hs.x, HS, 1, 0), seatY = G - (PILE_H + 4) * rk, hJ = solve(hs.p, hs.x, HS, 1, Math.max(PILE_H * rk, h0.hip[1] - seatY)); const rJ = solve(rs.p, rs.x, RS, -1);
   const bx = hJ.neck[0] - 9 * HS, by = hJ.neck[1] + 3.5 * HS; grav = 1; const R0 = domR(t), dom = clamp(R0 / 1500);
   wind = 1.1 + .5 * Math.sin(now * .7); // same breeze as the other cutscenes
-  if (!tails[0].ok) { scarfFlut = 0; for (let k = 0; k < 600; k++) { stepRibbon(tails[0], bx, by, 1, 1 / 60, 0); stepRibbon(tails[1], bx, by + 3, 1, 1 / 60, 1.7); } scarfFlut = 1; } if (now < scarfT) scarfT = now; scarfAcc = Math.min(scarfAcc + (now - scarfT), .1); scarfT = now; while (scarfAcc >= 1 / 60) { scarfAcc -= 1 / 60; stepRibbon(tails[0], bx, by, 1, 1 / 60, 0); stepRibbon(tails[1], bx, by + 3, 1, 1 / 60, 1.7); } // fixed step = smooth scarf
+  { const lift = hJ.neck[1] - h0.neck[1], dl = lift - scarfLift; scarfLift = lift; if (dl) for (const R of tails) if (R.ok) for (let i = 0; i < R.n; i++) { R.p[i][1] += dl; R.o[i][1] += dl; } } if (!tails[0].ok) { scarfFlut = 0; for (let k = 0; k < 600; k++) { stepRibbon(tails[0], bx, by, 1, 1 / 60, 0); stepRibbon(tails[1], bx, by + 3, 1, 1 / 60, 1.7); } scarfFlut = 1; } if (scarfClock < scarfT) scarfT = scarfClock; scarfAcc = Math.min(scarfAcc + (scarfClock - scarfT), .1); scarfT = scarfClock; while (scarfAcc >= 1 / 60) { scarfAcc -= 1 / 60; stepRibbon(tails[0], bx, by, 1, 1 / 60, 0); stepRibbon(tails[1], bx, by + 3, 1, 1 / 60, 1.7); } // fixed step = smooth scarf
   for (const c of CUTS) if (t >= c.t && !c.done) { c.done = 1; if (c.burst) shake = Math.max(shake, 6); if (c.body && marks.length < 9 && rnd() < .4) marks.push({ ox: c.ox * 32, oy: c.oy * .85 + .05, a: c.a, len: c.len * .08 }); const p = c.body ? [rJ.hip[0] + c.ox * 45, lerp(rJ.hip[1], rJ.head[1], c.oy)] : [RX + c.wx, G + c.wy]; spawn(5, () => ({ x: p[0], y: p[1], vx: rand(-260, 260), vy: rand(-260, 60), g: 500, life: rand(.2, .5), s: rand(1.2, 2.6), c: pick(['#060606', '#060606', '#ff4a3a']) })); if (!c.body && c.wy > -20) spawn(4, () => ({ x: p[0] + rand(-10, 10), y: G - 2, vx: rand(-120, 120), vy: rand(-220, -60), g: 600, life: rand(.3, .7), s: rand(1.5, 3.2), c: '#2a1210' })); }
   if (rk > 0 && rk < 1 && t < T.collapse) spawn(3, () => ({ x: HX + rand(-150, 150), y: G - 2, vx: rand(-60, 60), vy: rand(-160, -40), g: 300, life: rand(.4, 1), s: rand(2, 5), c: pick(['rgba(60,30,28,.7)', 'rgba(120,100,95,.5)']) }));
 
@@ -963,6 +963,7 @@ function render(sdt) {
   drawShrine(ctx, t, R0);
   drawPile(ctx, HX + 2, G, rk);
   drawFangs(ctx, t, R0);
+  drawField(ctx, t, true);
   drawScarfTails(ctx, SCARF, SCARF_D);
 
   drawHero(ctx, hJ, { eye: t > T.sign + .1 && t < T.gone + .3 ? '#ff4a3a' : null });
@@ -983,7 +984,6 @@ function render(sdt) {
   for (const c of CUTS) { const k = (t - c.t) / .2; if (k < 0 || k > 1) continue; const p = c.body ? [rJ.hip[0] + c.ox * 45, lerp(rJ.hip[1], rJ.head[1], c.oy)] : [RX + c.wx, G + c.wy]; drawSlash(ctx, p[0], p[1], c.a, c.len, c.w, k); }
   if (st.fin && t < T.final + .6) { const k = prog(t, T.final, T.final + .6), c = [rJ.hip[0] - 4, lerp(rJ.hip[1], rJ.head[1], .5)]; for (const a of [-.85, .85]) drawSlash(ctx, c[0], c[1], a, 440, 30, k); }
   if (st.boom) { const k = t - T.boom; drawBlast(ctx, RX + 10, G - 140, k); if (k < 1.6) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const lg = ctx.createRadialGradient(RX, G - 130, 0, RX, G - 130, 620); lg.addColorStop(0, `rgba(255,140,60,${.4 * (1 - k / 1.6)})`); lg.addColorStop(1, 'rgba(255,80,30,0)'); ctx.fillStyle = lg; ctx.fillRect(-80, -80, W + 160, H + 160); ctx.restore(); } }
-  drawField(ctx, t, true);
   // ripples, particles, damage
   for (const r of ripples) { const k = 1 - r.life / r.max, rr = r.r * E.o(k); ctx.save(); ctx.globalAlpha = r.life / r.max; ctx.strokeStyle = r.col || '#fff'; ctx.lineWidth = r.w; ctx.beginPath(); ctx.ellipse(r.x, r.y, Math.max(.1, rr), Math.max(.1, rr * r.ry), 0, 0, 7); ctx.stroke(); ctx.restore(); }
   for (const sh of shards) { ctx.save(); ctx.globalAlpha = clamp(sh.life / .4); ctx.translate(sh.x, sh.y); ctx.rotate(sh.r); ctx.fillStyle = '#1a0a08'; ctx.fillRect(-sh.sz / 2, -sh.sz / 2, sh.sz, sh.sz * .7); ctx.restore(); }
