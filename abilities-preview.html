@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Final Form · Moves &amp; interactions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Shippori+Mincho+B1:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080b;--ink:#ecebe6;--muted:#8a8984;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--good:#7fd18b;--bad:#ff7a6a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 60px}
+h1{font:800 26px "Shippori Mincho B1",Georgia,serif;letter-spacing:.3em;margin:0 0 6px}p.sub{color:var(--muted);margin:0 0 22px;font-size:14px;line-height:1.6}
+h2{font:800 15px Inter;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:34px 0 12px}
+a{color:var(--muted)}
+.card{background:#0e1016;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:18px;box-shadow:0 30px 70px -40px #000}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font:700 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:0 10px 10px}
+td{padding:12px 10px;border-top:1px solid var(--line);vertical-align:middle}
+td.t{width:34px}.badge{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;font:800 14px "Shippori Mincho B1",serif;color:#0a0a0c}
+td .nm{font-weight:700}td small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.num{font:800 14px Inter;white-space:nowrap}.num.d{color:var(--good)}.num.t{color:var(--bad)}.num.z{color:var(--muted);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+.mv .head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.mv .head b{font:800 17px "Shippori Mincho B1",Georgia,serif;letter-spacing:.06em}
+.frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 4px;font-size:12px;color:var(--muted)}.stats span b{display:block;font:800 16px Inter;margin-top:2px}
+.say{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}.say i{color:#d8d6cf}
+.btn{border:0;border-radius:999px;padding:10px 20px;font:700 11px Inter;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;background:linear-gradient(180deg,#fbfaf6,#d9d6cd);color:#0a0a0c;margin-top:10px}
+ul.rules{margin:0;padding-left:18px;line-height:1.8;font-size:14px;color:#d8d6cf}ul.rules b{color:#fff}
+.myth{background:linear-gradient(120deg,#ff8fb1,#ffd36e,#8ff0b0,#7fc8ff,#c39bff,#ff8fb1);background-size:300% 100%;animation:rb 4s linear infinite}
+.mythT{background:linear-gradient(90deg,#ff8fb1,#ffd36e,#8ff0b0,#7fc8ff,#c39bff,#ff8fb1);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:rb 4s linear infinite}
+@keyframes rb{to{background-position:300% 0}}
+</style>
+</head>
+<body>
+<main>
+  <h1>MOVES</h1>
+  <p class="sub">Every interaction in a fight: what each answer does to the rival, and what the rival does back. <a href="./">Back to the game</a></p>
+
+  <div class="card"><table>
+    <thead><tr><th></th><th>Answer</th><th>Your move</th><th>You deal</th><th>Points</th><th>Rival hits back</th></tr></thead>
+    <tbody id="table"></tbody>
+  </table></div>
+
+  <h2>The rules of a fight</h2>
+  <div class="card"><ul class="rules" id="rules"></ul></div>
+
+  <h2>Watch every move</h2>
+  <div class="grid" id="moves"></div>
+</main>
+<script>
+// keep in step with TIERS / CFG / COUNTER_LINES in index.html
+const V = '202611262020';
+const CFG = { hp: 100, rivalHP: 200, missDmg: 20, strikes: 3, time: 30 };
+const T = [
+  { k: 'S', name: 'Mythic', col: '#dfe8ff', share: 'the rarest 1–2 answers of a prompt', pts: 100, deal: 'K.O.', dealNote: 'all remaining HP', taken: 0, moves: [['si', 'Silver Instinct']] },
+  { k: 'A', name: 'Legendary', col: '#ffc94d', share: 'the next-rarest ~8%', pts: 75, deal: 75, taken: 0, moves: [['rk', 'Rock']] },
+  { k: 'B', name: 'Epic', col: '#b98cff', share: 'the rare ~14%', pts: 50, deal: 50, taken: 0, moves: [['b', 'Malicious Fate']] },
+  { k: 'C', name: 'Rare', col: '#6aa8ff', share: 'the middle ~20%', pts: 35, deal: 35, taken: 0, moves: [['c', 'Phantom Rush']] },
+  { k: 'D', name: 'Uncommon', col: '#7fd18b', share: 'the popular ~25%', pts: 25, deal: 25, taken: 10, counter: true, moves: [['d', 'Black Crescent'], ['d2', 'Spiral Orb']] },
+  { k: 'E', name: 'Common', col: '#b9bec7', share: 'the most popular ~30%', pts: 20, deal: 20, taken: 15, counter: true, moves: [['e', 'Spark Fist'], ['e2', 'Steam Jet']] },
+];
+const MISS = { k: '✕', name: 'Miss', col: '#ff7a6a', share: `${CFG.strikes} wrong guesses, or ${CFG.time}s runs out`, pts: 0, deal: 0, taken: CFG.missDmg, moves: [['x', 'Enemy Counter']] };
+const LINES = { 'Oni Brute': ["You'll have to do better than that.", 'That tickled.', 'Is that all you brought?'], 'Iron Warden': ["You'll have to do better than that.", 'Predictable.', 'Common steel bends. Mine does not.'], 'The Hollow': ["You'll have to do better than that.", 'Weak.', 'YLLACOFM'] };
+const badge = t => `<span class="badge${t.k === 'S' ? ' myth' : ''}" style="background:${t.col}">${t.k}</span>`;
+const nm = t => `<span class="nm${t.k === 'S' ? ' mythT' : ''}" ${t.k === 'S' ? '' : `style="color:${t.col}"`}>${t.name}</span>`;
+const back = t => t.counter ? `<span class="num t">−${t.taken} HP</span><small>counterattack, if the rival survives</small>` : t.taken ? `<span class="num t">−${t.taken} HP</span><small>enemy counter</small>` : `<span class="num z">0</span><small>no damage back</small>`;
+document.getElementById('table').innerHTML = [...T, MISS].map(t => `<tr><td class="t">${badge(t)}</td><td>${nm(t)}<small>${t.share}</small></td><td>${t.moves.map(m => m[1]).join(' / ')}</td><td><span class="num ${t.deal ? 'd' : 'z'}">${t.deal === 'K.O.' ? 'Instant K.O.' : t.deal}</span>${t.dealNote ? `<small>${t.dealNote}</small>` : ''}</td><td><span class="num">+${t.pts}</span></td><td>${back(t)}</td></tr>`).join('');
+
+document.getElementById('rules').innerHTML = [
+  `You start with <b>${CFG.hp} HP</b>. Each rival has <b>${CFG.rivalHP} HP</b>. Your HP carries over between rounds; it never refills.`,
+  `<b>Rarer answers hit harder.</b> Each prompt's answers are ranked from most to least popular (by how many players gave them) and split into tiers: about 30% Common, 25% Uncommon, 20% Rare, 14% Epic, 8% Legendary and just 1–2 Mythic. Ranks shift as more people play.`,
+  `<b>Mythic</b> deals whatever HP the rival has left: an instant K.O., worth +100 points.`,
+  `<b>Legendary, Epic and Rare</b> hits are clean: the rival can't hit back.`,
+  `<b>Uncommon and Common</b> hits get answered: if the rival is still standing, it counterattacks: <b>15 HP</b> after a Common hit, <b>10 HP</b> after an Uncommon one. If your hit finishes it, there's no counter.`,
+  `<b>Missing</b> (${CFG.strikes} wrong guesses, or the ${CFG.time}-second timer running out) lets the rival strike for <b>${CFG.missDmg} HP</b>, and you deal nothing.`,
+  `<b>K.O.:</b> a rival at 0 HP plays its death scene, then the next one leaps in at full HP: the Oni Brute, the Iron Warden, then The Hollow, and round again.`,
+  `<b>Your score is the total points</b> from your seven answers. It sets your rank. If your HP hits 0, the run ends early.`,
+].map(x => `<li>${x}</li>`).join('');
+
+const grid = document.getElementById('moves');
+for (const t of [...T, MISS]) for (const [id, name] of t.moves) {
+  const c = document.createElement('div'); c.className = 'card mv';
+  c.innerHTML = `<div class="head">${badge(t)}<b>${name}</b></div><div class="frame"><iframe loading="lazy" src="cut/${id}.html?embed=1&id=${id}&v=${V}" title="${name}" allow="autoplay"></iframe></div>
+    <div class="stats"><span>You deal<b style="color:${t.deal ? 'var(--good)' : 'var(--muted)'}">${t.deal === 'K.O.' ? 'K.O.' : t.deal}</b></span><span>Points<b>+${t.pts}</b></span><span>Rival hits back<b style="color:${t.taken ? 'var(--bad)' : 'var(--muted)'}">${t.taken ? '−' + t.taken + ' HP' : '0'}</b></span></div>
+    <button class="btn" data-play>Play</button>`;
+  const f = c.querySelector('iframe'), audio = new Audio(`cut/snd/${id}.mp3?v=${V}`); audio.preload = 'none'; let raf = 0;
+  window.addEventListener('message', e => { if (e.source !== f.contentWindow) return; const m = e.data || {};
+    if (m.ff === 'ready') f.contentWindow.postMessage({ ff: 'still', t: 2.2, rival: 'oni' }, '*');
+    if (m.ff === 'done') { cancelAnimationFrame(raf); audio.pause(); c.querySelector('[data-play]').textContent = 'Replay'; } });
+  c.querySelector('[data-play]').onclick = async () => {
+    document.querySelectorAll('.mv').forEach(o => o !== c && o._stop && o._stop());
+    try { audio.currentTime = 0; await audio.play(); } catch (e) { }
+    f.contentWindow.postMessage({ ff: 'play', pts: t.pts, rival: 'oni' }, '*');
+    const clock = () => { f.contentWindow.postMessage({ ff: 'clock', t: audio.currentTime, paused: audio.paused }, '*'); raf = requestAnimationFrame(clock); }; cancelAnimationFrame(raf); raf = requestAnimationFrame(clock);
+  };
+  c._stop = () => { audio.pause(); cancelAnimationFrame(raf); f.contentWindow.postMessage({ ff: 'stop' }, '*'); };
+  grid.appendChild(c);
+}
+</script>
+</body>
+</html>
