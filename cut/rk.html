@@ -1218,7 +1218,7 @@ window.__frame = n => ({ 1: frameKick, 2: () => frameChargeV2(1), 3: () => frame
 /* ================= ROCK: kick, charge, the punch, forest blast, mushroom cloud ================= */
 window.__freeze = false;
 const TS = T.fear;
-const Q = { kick: .5, kickEnd: 1.6, full: 2.9, close: 3.9, land: 5.7, punch: 5.7, valley: 5.86, vShock: 6.95, vHit: 7.55, white: 8.55, black: 8.9, down: 9.1, glyph: 10.9 };
+const Q = { kick: .5, kickEnd: 1.6, full: 2.9, close: 3.9, fall: 5.7, land: 6.55, punch: 6.55, valley: 6.71, vShock: 7.8, vHit: 8.4, white: 9.4, black: 9.75, down: 9.95, glyph: 11.75 };
 T.glyph = TS + Q.glyph; T.end = T.glyph + 1.9;
 for (const L of [EVENTS, SND]) for (let i = L.length - 1; i >= 0; i--) if (L[i][0] >= TS - 1e-6) L.splice(i, 1);
 const _speedAtR = speedAt; speedAt = tt => { if (tt < TS) return _speedAtR(tt); const u = tt - TS;
@@ -1321,7 +1321,7 @@ function shotCharge(sdt, u) { const g = ctx, p = prog(u, Q.kickEnd, Q.full), k =
   goldWorld(g, 1); g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = .1 + .14 * k; g.fillStyle = '#ffbf3a'; g.fillRect(-80, -80, W + 160, H + 160); g.restore();
   scarfGo(hJ, 'charge', sdt); goldenGround(g, fist, k); reflect(g, [[hJ, 'h']]); shadow(g, hJ.hip[0], 58);
   suckIn(g, fist, 40 + 70 * k | 0, 30, 420 + 220 * k, 120 + 100 * k, 420 + 340 * k, 4, .7 + .3 * k, u * 1.5);
-  goldHero(g, hJ, .4 + .5 * k);
+  plainHero(g, hJ);
   bloom(g, fist, (90 + 120 * k) * (1 + .05 * Math.sin(now * 30)), [[0, 'rgba(255,255,245,1)'], [.15, 'rgba(255,240,180,.85)'], [.45, `rgba(255,196,70,${.35 + .2 * k})`], [1, 'rgba(255,170,40,0)']]);
   if (k > .7) bloom(g, fist, 520, [[0, `rgba(255,230,150,${.35 * (k - .7) / .3})`], [1, 'rgba(255,200,80,0)']]);
   sparks(g, fist, 60 + 60 * k, 30 + 50 * k | 0, 7 + (now * 15 | 0) % 6, '#fff0b0');
@@ -1329,7 +1329,8 @@ function shotCharge(sdt, u) { const g = ctx, p = prog(u, Q.kickEnd, Q.full), k =
 
 // ---------- shot 3: fully charged, the rival plummets back down ----------
 const FALL = { ...ARP.flat, lean: -2.8, head: -.4, aF: .2, fF: -.2, aB: -.4, fB: -.9, lF: 2.6, sF: 2.2, lB: 3.2, sB: 2.8 };
-function fullScene(g, u, R, rivalY, o = {}) { const hJ = solve(o.pose || RAISE, o.hx ?? 200, GOLD_SC, 1, 0), fist = hJ.hF, c = o.orbAt || [fist[0] + 120, fist[1] - 250 * .82];
+function plainHero(g, J) { drawScarfTails(g, SCARF, SCARF_D); drawHero(g, J, { bulk: GOLD_BULK, eye: '#ffffff' }); drawScarfWrap(g, J, SCARF, SCARF_D); }
+function fullScene(g, u, R, rivalY, o = {}) { const hJ = solve(o.pose || LOADLOW, o.hx ?? 200, GOLD_SC, 1, 0), fist = hJ.hF, c = o.orbAt || [fist[0] + R * .55, Math.min(fist[1] - R * .1, G - R * .9)];
   goldWorld(g, 1); g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = .35; g.fillStyle = '#ffb347'; g.fillRect(-80, -80, W + 160, H + 160); g.restore();
   g.translate(W * .3, G); g.scale(.66, .66); g.translate(-W * .3, -G);
   goldenGround(g, [c[0], G], 1); reflect(g, [[hJ, 'h']]); shadow(g, hJ.hip[0], 58);
@@ -1337,7 +1338,7 @@ function fullScene(g, u, R, rivalY, o = {}) { const hJ = solve(o.pose || RAISE, 
   if (R > 0) { suckIn(g, c, 120, R * 1.05, R * 2.6, 160, 520, 17, 1, u * 1.3); orb(g, c, R * (1 + .02 * Math.sin(now * 40)), 31 + (now * 10 | 0) % 3); }
   return { hJ, c }; }
 function shotFull(sdt, u) { const g = ctx, p = prog(u, Q.full, Q.close); g.save(); g.setTransform(DPR, 0, 0, DPR, 0, 0); shakeG(g, 4 + 3 * p);
-  g.save(); const { hJ } = fullScene(g, u, lerp(140, 250, E.o(clamp(p * 1.6))), lerp(-1150, -380, E.i(p))); scarfGo(hJ, 'full', sdt); goldHero(g, hJ, 1); g.restore();
+  g.save(); const { hJ } = fullScene(g, u, lerp(90, 175, E.o(clamp(p * 1.6))), lerp(-1150, -380, E.i(p))); scarfGo(hJ, 'full', sdt); plainHero(g, hJ); g.restore();
   g.restore(); vignette(g, .45); flashOver(.3 * (1 - prog(u, Q.full, Q.full + .1)), '255,240,200'); }
 // ---------- shot 4: the close-up, the attack running off screen ----------
 let closeHero = null;
@@ -1354,6 +1355,17 @@ function shotClose(sdt, u) { const g = ctx, p = prog(u, Q.close, Q.land); g.save
   veins(g, [-40, 520], 380, 560, 30, 77 + (now * 8 | 0) % 2, 2.2);
   const edge = g.createLinearGradient(W * .75, 0, W, 0); edge.addColorStop(0, 'rgba(30,6,10,0)'); edge.addColorStop(1, 'rgba(30,6,10,.6)'); g.fillStyle = edge; g.fillRect(0, 0, W, H);
   g.restore(); vignette(g, .35); }
+// ---------- the rival plummeting out of the sky ----------
+function shotFall(sdt, u) { const g = ctx, p = prog(u, Q.fall, Q.punch); g.save(); g.setTransform(DPR, 0, 0, DPR, 0, 0); shakeG(g, 3);
+  const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#2c241c'); sky.addColorStop(.6, '#7a6142'); sky.addColorStop(1, '#e0b76a'); g.fillStyle = sky; g.fillRect(-20, -20, W + 40, H + 40);
+  { const r = SR(8); for (let i = 0; i < 7; i++) { const cy = (((r() * (H + 300)) - u * 900) % (H + 300) + H + 300) % (H + 300) - 150; g.fillStyle = 'rgba(255,235,200,.08)'; g.beginPath(); g.ellipse(r() * W, cy, 160 + r() * 200, 30 + r() * 30, 0, 0, 7); g.fill(); } }
+  // streaks rushing upward past him
+  g.save(); g.lineCap = 'round'; const r = SR(3); for (let i = 0; i < 46; i++) { const x = r() * W, L = 80 + r() * 260, y = (((r() * (H + 400)) - u * (1500 + 900 * r())) % (H + 400) + H + 400) % (H + 400) - 200; g.strokeStyle = `rgba(255,248,230,${.25 + .5 * r()})`; g.lineWidth = 1 + r() * 2.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + L); g.stroke(); } g.restore();
+  const J = solve(FOLD, 0, RS * 1.1, -1, 0), y = lerp(40, H + 320, .55 * p + .45 * p * p); shiftJ(J, W * .55 - J.hip[0], y - J.hip[1]);
+  g.save(); g.translate(J.hip[0], J.hip[1]); g.rotate(Math.PI * .8 + .7 * p); g.translate(-J.hip[0], -J.hip[1]); drawRival(g, J, {}); g.restore();
+  // wind tearing off him
+  g.save(); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 2; for (let i = 0; i < 6; i++) { const x = J.hip[0] + (i - 2.5) * 34; g.beginPath(); g.moveTo(x, J.hip[1] - 160); g.lineTo(x + Math.sin(now * 20 + i) * 6, J.hip[1] - 420); g.stroke(); } g.restore();
+  g.restore(); vignette(g, .45); }
 // ---------- shot 5: the rival hits the ground, the punch ----------
 const RLAND = solve({ ...ARP.flat }, 1080, RS, -1, 0);
 function shotLand(sdt, u) { const g = ctx;
@@ -1403,8 +1415,7 @@ function shotValley(sdt, u) { if (u < Q.valley + .14) return valleyInk(u, Q.vall
     for (const [w, col] of [[30, `rgba(220,230,255,${.18 * a})`], [10, `rgba(240,245,255,${.5 * a})`], [3, `rgba(255,255,255,${.95 * a})`]]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(VX, by, rr * .85, Math.PI, Math.PI * 2); g.stroke(); g.beginPath(); g.ellipse(VX, by + 20, rr, rr * .3, 0, 0, 7); g.stroke(); }
     const wash = g.createRadialGradient(VX, by + 20, rr * .7, VX, by + 20, rr * 1.05); wash.addColorStop(0, 'rgba(255,255,255,0)'); wash.addColorStop(.8, `rgba(235,240,255,${.35 * a})`); wash.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = wash; g.fillRect(-40, -40, W + 80, H + 80);
     g.restore();
-    const r = SR(5); g.save(); for (let i = 0; i < 110; i++) { const ang = r() * Math.PI, x = VX + Math.cos(ang) * rr * (1 + .08 * r()), y = by + 20 + Math.sin(ang) * rr * .3 * (.8 + .2 * r()), s = (8 + r() * 20) * (.6 + rr / 800);
-      { const v = 110 + r() * 50 | 0; g.fillStyle = `rgba(${v},${v - 6},${v - 14},${.5 * a})`; } g.beginPath(); g.ellipse(x, y - s * .6, s * 1.5, s, 0, 0, 7); g.fill(); } g.restore(); }
+  }
   vignette(g, .5); g.restore();
   if (u > Q.vHit) { const r = SR(9 + (now * 20 | 0)); ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.lineCap = 'round'; for (let i = 0; i < 50 * (1 - hitK); i++) { const y = r() * H, x = r() * W, L = 80 + r() * 300; ctx.strokeStyle = `rgba(230,235,245,${.4 * r()})`; ctx.lineWidth = 1 + r() * 4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + L, y - L * .04); ctx.stroke(); } ctx.restore();
     flashOver(.6 * (1 - E.o(clamp(hitK * 4)))); flashOver(E.i(prog(u, Q.vHit + .5, Q.white))); }
@@ -1463,7 +1474,8 @@ render = sdt => { if (t < TS) { BWK = (t < T.trans ? 0 : clamp(prog(t, T.trans, 
   else if (u < Q.kickEnd) shotKick(sdt, u);
   else if (u < Q.full) shotCharge(sdt, u);
   else if (u < Q.close) shotFull(sdt, u);
-  else if (u < Q.land) shotClose(sdt, u);
+  else if (u < Q.fall) shotClose(sdt, u);
+  else if (u < Q.punch) shotFall(sdt, u);
   else if (u < Q.valley) shotPunchInk(u);
   else if (u < Q.black) shotValley(sdt, u);
   else if (u < Q.down) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
@@ -1472,7 +1484,7 @@ render = sdt => { if (t < TS) { BWK = (t < T.trans ? 0 : clamp(prog(t, T.trans, 
   const lb = t > T.glyph ? 1 - prog(t, T.glyph, T.glyph + .4) : 1; if (lb > 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, 54 * lb); ctx.fillRect(0, H - 54 * lb, W, 54 * lb); }
   if (t > T.glyph) endCard(t - T.glyph, 'A', 'LEGENDARY', 'ROCK', '7 5   D E A L T   ·   0   T A K E N', '#ffc94d');
   overlays(); };
-setTimeout(() => { try { valleyCache(); render(0); } catch (e) { console.error(e); } }, 30);
+setTimeout(() => { try { valleyCache(); mushCache(); render(0); } catch (e) { console.error(e); } }, 30);
 
 // ---------- sound ----------
 const at = (u, fn) => SND.push([TS + u, fn]);
@@ -1482,6 +1494,7 @@ at(Q.kick, () => { FX.hit(0, 1.7); FX.hit(.02, 1.1); FX.sub(0, 60, 26, 1.5, .9, 
 at(Q.kickEnd, () => { FX.charge(0, Q.land - Q.kickEnd, .4); FX.rumble(0, Q.land - Q.kickEnd, .45); FX.choir(.2, Q.land - Q.kickEnd - .2, .3); FX.riser(.3, Q.land - Q.kickEnd - .3, .35); });
 at(Q.full, () => { FX.braam(0, .5, 1.3); FX.whoosh(0, .65, 2400, 300, .6, { p0: .6, p1: .4 }); });
 at(Q.close, () => { FX.zap(0, .5, .3); FX.sub(0, 50, 34, .5, .5, 2); });
+at(Q.fall, () => FX.whoosh(0, Q.punch - Q.fall, 2600, 300, .9, { p0: 0, p1: 0 }));
 at(Q.punch - .06, () => { FX.suck(0, .06, .5); FX.duck(0, .05, .03); });
 at(Q.punch, () => { FX.duck(0, 1, .01); FX.hit(0, 2.3); FX.hit(.015, 1.5); FX.sub(0, 70, 20, 3.2, 1.1, 3); FX.braam(0, .8, 2.6); });
 at(Q.valley, () => { FX.rumble(0, 1.6, .9); FX.crackle(0, 1.3, .6); FX.debris(.05, 1.1, 1.3); FX.glass(.05, .3, .9); });
@@ -1492,7 +1505,6 @@ at(Q.black - .3, () => FX.muffle(0, 300, .4));
 at(Q.down, () => FX.muffle(0, 18000, .8));
 
 SND.sort((a, b) => a[0] - b[0]);
-
 // ---------- stretched transformation + an original, synthesized spooky score ----------
 const realBetween = (a, b) => { let tt = a, r = 0; while (tt < b) { const d = 1 / 240; r += d; tt += d * speedAt(tt); } return r; };
 Object.assign(FX, {
